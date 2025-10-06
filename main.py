@@ -1,66 +1,171 @@
 # main.py
-# Richiama la funzione create_file dal modulo create_file.py
-# e la funzione build_geometry dal modulo build_geometry.py
+# Flusso: GUI -> crea file -> geometria -> proprietà -> freedom case -> load cases -> combinazioni+solver
+#        -> import spettro -> spectral analysis
+# Questo file orchestra l’intero workflow:
+# - raccoglie input dall’utente
+# - crea il modello Straus7 (.st7)
+# - genera geometria e applica proprietà
+# - definisce i vincoli (freedom case)
+# - definisce e applica i carichi
+# - crea combinazioni e lancia il solver per l’analisi lineare (LSA)
+# - importa lo spettro nel Table Factor vs Frequency/Period
+# - esegue l’analisi spettrale (solver SR, combinazione .SRA, solver statico)
 
-from create_file import create_file
-from build_geometry import build_geometry
-from apply_properties import apply_properties
-from freedom_case import apply_freedom_case
-from load_cases import apply_load_cases
-from lsa_combine_and_solve import lsa_combine_and_solve
+import sys
+import os
+from pathlib import Path
 
+from create_file import create_file                 # crea un nuovo file .st7 e restituisce il path
+from gui import run_gui                             # apre la GUI; ritorna dict parametri o None se annullata
+from build_geometry import build_geometry           # costruisce nodi/elementi; ritorna info su path e nodi base
+from apply_properties import apply_properties       # assegna materiale e sezioni; ritorna riepilogo proprietà
+from freedom_case import apply_freedom_case         # definisce i gradi di libertà bloccati; ritorna dict con numero caso
+from load_cases import apply_load_cases             # genera casi di carico (G1, G2, Q) e applica i carichi
+from lsa_combine_and_solve import lsa_combine_and_solve  # crea combinazioni e lancia solver LSA
+
+# --- nuovi step separati ---
+from import_spettro import run as import_spettro_run        # importa TXT -> Table ttVsFrequency (asse Period, unità g)
+from spectral_analysis import run as spectral_run           # solver SR -> combina .SRA -> solver Linear Static
+
+# --- analisi modale ---
+import St7API as st7
+from modal_analysis import run_nfa                          # avvia Natural Frequency Analysis (NFA)
+
+# Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 if __name__ == "__main__":
+    # === Step 0: input GUI ====================================================
+    gui_params = run_gui()  # None se annullata/chiusa
+    if gui_params is None:
+        print("Analisi annullata dall'utente.")
+        sys.exit(0)
 
-    # Step 1: crea il file .st7 vuoto con le unità
+    # === Step 1: crea file ====================================================
     path = create_file("telaio_2D.st7")
     print("File generato:", path)
 
-    # Step 2: aggiungi la geometria parametrica al file
-    geom = build_geometry(path,
-                          h_story=3.50,
-                          span=5.00,
-                          n_floors=2,
-                          offset=1.50,
-                          prop_col=1,    # proprietà colonne
-                          prop_beam=2)   # proprietà travi
+    # === Step 2: geometria ====================================================
+    geom = build_geometry(
+        path,
+        h_story=gui_params["h_story"],
+        span=gui_params["span"],
+        n_floors=gui_params["n_floors"],
+        offset=gui_params["offset"],
+        prop_col=1,
+        prop_beam=2
+    )
     print("Geometria scritta su:", geom["model_path"])
     print("Nodi di base:", geom["base_nodes"])
 
-    # Step 3: proprietà con E, ν, ρ dal main e sezioni da .BSL
-    from apply_properties import apply_properties
-
-    props = apply_properties(model_path=geom["model_path"],
-                             E=200000.0,          # MPa
-                             nu=0.30,             # -
-                             rho=7850.0,          # kg/m^3
-                             section_columns="BS EN - HE 160 A - BS EN 10365-2017 BSL",
-                             section_beams="BS EN - IPE 270 - BS EN 10365-2017 BSL",
-                             prop_col=1,
-                             prop_beam=2,
-                             library_dir_bsl = r"C:\ProgramData\Straus7 R31\Data")
+    # === Step 3: proprietà ====================================================
+    props = apply_properties(
+        model_path=geom["model_path"],
+        E=gui_params["E"],
+        nu=gui_params["nu"],
+        rho=gui_params["rho"],
+        section_columns=gui_params["section_columns"],
+        section_beams=gui_params["section_beams"],
+        prop_col=1,
+        prop_beam=2,
+        library_dir_bsl=r"C:\ProgramData\Straus7 R31\Data"
+    )
     print("Proprietà applicate:", props)
 
-    # Step 4: crea freedom cases
+    # === Step 4: freedom case =================================================
     fc = apply_freedom_case(path, case_name="2d plane XY", base_nodes=geom["base_nodes"])
     print("Freedom case:", fc)
 
-    # Step 5: crea load cases
-    lc = apply_load_cases(path,
-                      gravity=9.80665,
-                      q_G2=-26.25,
-                      q_Q=-22.5,
-                      q_Q_roof=-3.0,
-                      prop_beam=2)
+    # === Step 5: load cases ===================================================
+    # Converti carichi superficiali [kN/m²] in carichi lineari [kN/m]
+    span = gui_params["span"]
+    q_G2     = gui_params["G2_int_kNm2"]  * span
+    q_Q      = gui_params["Q_int_kNm2"]   * span
+    q_Q_roof = gui_params["Q_roof_kNm2"]  * span
+
+    lc = apply_load_cases(
+        path,
+        gravity=9.80665,
+        q_G2=q_G2,            # kN/m
+        q_Q=q_Q,              # kN/m
+        q_Q_roof=q_Q_roof,    # kN/m
+        prop_beam=2
+    )
     print("Load cases:", lc)
 
-    # Step 6: crea combination e solver Linear Static Analysis (LSA)
+    # === Step 6: combinazioni LSA e solver ====================================
     res = lsa_combine_and_solve(
-    model_path=path,
-    freedom_case=1,                    # FC 1 “2D plane XY”
-    lc_G1=1, lc_G2=2, lc_Q=3,          # come creati prima
-    combos={
-        "SLU":       {1: 1.35, 2: 1.35, 3: 1.50},
-        "SISMA q=4": {1: 1.00, 2: 1.00, 3: 0.30},
-    })
+        model_path=path,
+        freedom_case=fc["freedom_case_num"],
+        lc_G1=lc["load_cases"]["G1"],
+        lc_G2=lc["load_cases"]["G2"],
+        lc_Q=lc["load_cases"]["Q"],
+        combos={
+            "SLU":       {1: 1.35, 2: 1.35, 3: 1.50},
+            "SISMA q=4": {1: 1.00, 2: 1.00, 3: 0.30},
+        }
+    )
     print("Combinazioni LSA create e solver avviato:", res)
+
+    # === Step 7: natural frequency analysis ===================================
+    # Avvia l’analisi dei modi propri sul modello creato:
+    # - inizializza API Straus7
+    # - apre il file .st7 in memoria (uID=1)
+    # - esegue NFA (num_modes, shift, partecipazioni)
+    # - chiude file e rilascia API
+    print("Avvio analisi modale (NFA)...")
+    try:
+        err = st7.St7Init()                                  # inizializza API
+        if err:
+            raise RuntimeError(f"St7Init failed: {err}")
+
+        uID = 1                                              # ID modello in memoria
+        MODEL_PATH = os.path.abspath(path).encode('utf-8')   # percorso in bytes per API
+        err = st7.St7OpenFile(uID, MODEL_PATH, 1)            # 1 = read/write (intero richiesto)
+        if err:
+            raise RuntimeError(f"St7OpenFile failed: {err}")
+
+        # === Step 7: natural frequency analysis ====================================
+        run_nfa(
+            uID=uID,                     # ID modello attivo
+            num_modes=20,                # numero modi propri
+            shift_hz=0.0,                # nessuno shift
+            calc_participation=True,     # fattori di partecipazione
+            wait=True,                   # attende fine solver
+            show_progress=False          # niente finestra solver
+        )
+        print("Analisi modale completata.")
+    except Exception as e:
+        print("Analisi modale fallita:", e)
+        try:
+            st7.St7CloseFile(uID)
+        except Exception:
+            pass
+        try:
+            st7.St7Release()
+        except Exception:
+            pass
+        sys.exit(1)
+    else:
+        st7.St7CloseFile(uID)                                     # chiude file
+        st7.St7Release()                                          # rilascia API
+
+    # === Step 8a: import spettro nel Table ====================================
+    # Esegue: lettura TXT spettro -> tabella Factor vs Period (asse = Period, unità = acceleration response in g).
+    print("Import spettro nel Table...")
+    try:
+        imp_res = import_spettro_run(model_path=path)
+        print("Spettro importato:", imp_res)
+    except Exception as e:
+        print("Import spettro fallito:", e)
+        sys.exit(1)
+
+    # === Step 8b: analisi spettrale ===========================================
+    # Esegue: solver Spectral Response -> import .SRA in combinazione -> solver Linear Static finale.
+    print("Avvio analisi spettrale...")
+    try:
+        sr_res = spectral_run(model_path=path)
+        print("Analisi spettrale completata:", sr_res)
+    except Exception as e:
+        print("Analisi spettrale fallita:", e)
+        sys.exit(1)
