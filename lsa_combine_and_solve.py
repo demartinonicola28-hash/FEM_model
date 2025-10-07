@@ -18,7 +18,11 @@ import os
 import ctypes as ct
 
 os.add_dll_directory(r"C:\Program Files\Straus7 R31\Bin64")
-from St7API import *
+from St7API import *  # Import all from St7API
+try:
+    from St7API import solver_lin_static  # Ensure solver_lin_static is imported
+except ImportError:
+    solver_lin_static = 1  # Fallback value if not defined in St7API
 
 # ---------- utilità minime ----------
 def _b(s: str) -> bytes:
@@ -109,7 +113,7 @@ def lsa_combine_and_solve(model_path: str,
     except NameError:
         solver_id = 1                   # fallback ragionevole
     try:
-        run_mode = smNormalRun          # esecuzione “normale”
+        run_mode = smNormalCloseRun          # esecuzione “normale”
     except NameError:
         run_mode = 0
 

@@ -70,7 +70,7 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
 
     root = tk.Tk()
     root.title("Input Dati della Struttura")
-    root.geometry("980x700")
+    root.geometry("1100x700")
 
     PAD = {"padx": 10, "pady": 6}
     root.columnconfigure(0, weight=1, minsize=480)

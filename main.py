@@ -15,21 +15,25 @@ import sys
 import os
 from pathlib import Path
 
+# --- crea modello FEM ---
 from create_file import create_file                 # crea un nuovo file .st7 e restituisce il path
 from gui import run_gui                             # apre la GUI; ritorna dict parametri o None se annullata
 from build_geometry import build_geometry           # costruisce nodi/elementi; ritorna info su path e nodi base
 from apply_properties import apply_properties       # assegna materiale e sezioni; ritorna riepilogo proprietà
 from freedom_case import apply_freedom_case         # definisce i gradi di libertà bloccati; ritorna dict con numero caso
-from load_cases import apply_load_cases             # genera casi di carico (G1, G2, Q) e applica i carichi
-from lsa_combine_and_solve import lsa_combine_and_solve  # crea combinazioni e lancia solver LSA
+from load_cases import apply_load_cases
 
-# --- nuovi step separati ---
-from import_spettro import run as import_spettro_run        # importa TXT -> Table ttVsFrequency (asse Period, unità g)
-from spectral_analysis import run as spectral_run           # solver SR -> combina .SRA -> solver Linear Static
+# --- analisi statica SLU ---
+from lsa_combine_and_solve import lsa_combine_and_solve  # crea combinazioni e lancia solver LSA
 
 # --- analisi modale ---
 import St7API as st7
-from modal_analysis import run_nfa                          # avvia Natural Frequency Analysis (NFA)
+from modal_analysis import run_modal_analysis, default_model_path
+
+# --- analisi spettrale ---
+from import_spettro import run as import_spettro_run        # importa TXT -> Table ttVsFrequency (asse Period, unità g)
+from spectral_analysis import run as spectral_run           # solver SR -> combina .SRA -> solver Linear Static
+
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -73,7 +77,16 @@ if __name__ == "__main__":
     print("Proprietà applicate:", props)
 
     # === Step 4: freedom case =================================================
-    fc = apply_freedom_case(path, case_name="2d plane XY", base_nodes=geom["base_nodes"])
+    base_ids = [int(i) for i in geom["base_nodes"]]  # niente numpy.int32
+    if not base_ids:
+        raise ValueError("base_nodes è vuoto")
+
+    fc = apply_freedom_case(
+        path,
+        base_nodes=base_ids,
+        case_num=1,
+        case_name="2D Beam XY"
+    )
     print("Freedom case:", fc)
 
     # === Step 5: load cases ===================================================
@@ -106,51 +119,35 @@ if __name__ == "__main__":
         }
     )
     print("Combinazioni LSA create e solver avviato:", res)
+    # chiude la finestra al termine:
 
-    # === Step 7: natural frequency analysis ===================================
-    # Avvia l’analisi dei modi propri sul modello creato:
-    # - inizializza API Straus7
-    # - apre il file .st7 in memoria (uID=1)
-    # - esegue NFA (num_modes, shift, partecipazioni)
-    # - chiude file e rilascia API
-    print("Avvio analisi modale (NFA)...")
-    try:
-        err = st7.St7Init()                                  # inizializza API
-        if err:
-            raise RuntimeError(f"St7Init failed: {err}")
+    # === Step 7: Analisi Modale (Natural Frequency) ==========================
 
-        uID = 1                                              # ID modello in memoria
-        MODEL_PATH = os.path.abspath(path).encode('utf-8')   # percorso in bytes per API
-        err = st7.St7OpenFile(uID, MODEL_PATH, 1)            # 1 = read/write (intero richiesto)
-        if err:
-            raise RuntimeError(f"St7OpenFile failed: {err}")
+        # >>> uso il file appena creato invece di cercarne un altro in una cartella diversa
+    base = os.path.dirname(os.path.abspath(path))                 # >>> cartella del modello corrente
+    model = os.path.abspath(path)                                 # >>> uso il .st7 creato allo Step 1
 
-        # === Step 7: natural frequency analysis ====================================
-        run_nfa(
-            uID=uID,                     # ID modello attivo
-            num_modes=20,                # numero modi propri
-            shift_hz=0.0,                # nessuno shift
-            calc_participation=True,     # fattori di partecipazione
-            wait=True,                   # attende fine solver
-            show_progress=False          # niente finestra solver
-        )
-        print("Analisi modale completata.")
-    except Exception as e:
-        print("Analisi modale fallita:", e)
-        try:
-            st7.St7CloseFile(uID)
-        except Exception:
-            pass
-        try:
-            st7.St7Release()
-        except Exception:
-            pass
-        sys.exit(1)
-    else:
-        st7.St7CloseFile(uID)                                     # chiude file
-        st7.St7Release()                                          # rilascia API
+    # individua automaticamente il .st7 presente nella cartella
+    # model = find_model_in(base)                                 # (lasciato come riferimento, NON usato)  # >>>
 
-    # === Step 8a: import spettro nel Table ====================================
+    scratch = os.path.join(base, "_scratch")                      # cartella temporanea
+    res = os.path.join(base, os.path.splitext(os.path.basename(model))[0] + ".nfa")
+    log = os.path.join(base, os.path.splitext(os.path.basename(model))[0] + ".log")
+
+    # esecuzione: modi = numero di piani utente (non altezza interpiano)
+    n_modes = int(gui_params["n_floors"])                         # >>> allineo ai piani; prima era fisso = 2
+    
+    run_modal_analysis(
+        model_path=model,
+        scratch_path=scratch,
+        n_modes=n_modes,                                          # >>> passo il numero di modi corretto
+        res_path=res,
+        log_path=log
+    )
+
+    print("Analisi modale completata e risultati salvati in:", res)
+
+    # === Step 8: import spettro nel Table ====================================
     # Esegue: lettura TXT spettro -> tabella Factor vs Period (asse = Period, unità = acceleration response in g).
     print("Import spettro nel Table...")
     try:
@@ -160,7 +157,7 @@ if __name__ == "__main__":
         print("Import spettro fallito:", e)
         sys.exit(1)
 
-    # === Step 8b: analisi spettrale ===========================================
+    # === Step 9: analisi spettrale ===========================================
     # Esegue: solver Spectral Response -> import .SRA in combinazione -> solver Linear Static finale.
     print("Avvio analisi spettrale...")
     try:
@@ -169,3 +166,7 @@ if __name__ == "__main__":
     except Exception as e:
         print("Analisi spettrale fallita:", e)
         sys.exit(1)
+
+    # === Step 10: apertura automatica del file Straus7 ==========================
+    print("Apertura automatica del file Straus7...")
+    os.startfile(model)

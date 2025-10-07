@@ -1,0 +1,77 @@
+*SOLUTION COMMENCED AT 18:24 ON 07/10/2025 
+  
+ Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
+  
+ LICENCED TO                 : PINECA UNIPD 50 POSTI DI LAVORO 
+  
+ ANALYSIS TYPE               : SPECTRAL RESPONSE 
+  
+ COMPUTER NAME               : PC-103 
+ USER LOGON NAME             : demnic15950 
+ CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
+ USABLE PHYSICAL MEMORY      : 15.8 GB 
+ USABLE VIRTUAL MEMORY       : 18.2 GB 
+  
+ MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\telaio_2D.st7" 
+ RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\telaio_2D.SRA" 
+ SCRATCH PATH                : "C:\Users\demnic15950\Straus7 R31\Tmp\" 
+ FREQUENCY FILE              : "C:\Users\demnic15950\Downloads\FEM_model\telaio_2D.NFA" 
+  
+ TOTALS 
+ Nodes                       : 14 
+ Beams                       : 14 
+ Plates                      : 0 
+ Bricks                      : 0 
+ Links                       : 0 
+  
+ SOLVER UNITS 
+ Length                      : m 
+ Mass                        : kg 
+ Force                       : N 
+ Stress                      : Pa 
+  
+ FREEDOM CASE                : "2D Beam XY" 
+  
+ SPECTRUM TYPE               : Response 
+ NUMBER OF CASES             : 1 
+ RESULTS SIGN                : Autosign 
+ NUMBER OF BEAM SLICES       : 10 
+  
+ RAYLEIGH DAMPING INPUT DATA  
+ Frequency 1                 : 1.000000E+00 Hz 
+ Damping Ratio 1             : 1.000000E+00 % 
+ Frequency 2                 : 1.000000E+01 Hz 
+ Damping Ratio 2             : 1.000000E+00 % 
+  
+ DAMPING COEFFICIENTS 
+ Alpha                       : 1.142397E-01   
+ Beta                        : 2.893726E-04   
+  
+ NUMBER OF EQUATIONS         : 36 
+ FREE SCRATCH SPACE          : 176.1 GB 
+  
+*WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
+  
+ BASE EXCITATION CASE 1      : "SR_X" 
+ EXCITATION TYPE             : Base Acceleration 
+ DIRECTION VECTOR            : (+1.000000E+00,+0.000000E+00,+0.000000E+00) 
+ SPECTRAL TABLE              : "design_spectre" 
+  
+ MODAL EXCITATION CASE 1     : "SR_X" 
+ Mode     Frequency    Spectral Value  Damping Ratio    Amplitude     Excitation    Participation 
+             (Hz)          (m/s^2)                        (N/m)          (N.m)           (%)          (%) 
+   1     1.484426E+00   1.170868E+00   7.473671E-03   2.440972E+04   4.422068E+00   8.892086E+01    88.921 
+   2     4.333915E+00   1.719586E+00   6.037543E-03   2.972915E+03   1.598783E-02   1.082988E+01    10.830 
+ -----------------------------------------------------------------------------------------------   -------  
+ TOTAL MASS PARTICIPATION (%)                                                       9.975074E+01    99.751  
+  
+ TOTAL CPU TIME              : 0.453 Seconds 
+  
+ 
+*SUMMARY OF MESSAGES
+*Number of Notes    : 0
+*Number of Warnings : 1
+*Number of Errors   : 0
+ 
+*SOLUTION COMPLETED AT 18:24 ON 07/10/2025 
+*SOLUTION TIME: 1 Second 
