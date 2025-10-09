@@ -61,7 +61,7 @@ def lsa_combine_and_solve(model_path: str,
     if combos is None:
         combos = {
             "SLU":       {lc_G1: 1.35, lc_G2: 1.35, lc_Q: 1.50},
-            "SISMA q=4": {lc_G1: 1.00, lc_G2: 1.00, lc_Q: 0.30},
+            "SLV q=4": {lc_G1: 1.00, lc_G2: 1.00, lc_Q: 0.30},
         }
 
     # 1) apri modello

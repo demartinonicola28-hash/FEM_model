@@ -1,2 +1,0 @@
- TYPE:FREEDOM NAME: "2d plane XY"
-F F T T T F 0 1

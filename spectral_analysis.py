@@ -27,9 +27,9 @@ SR_PRIMARY_ROW = None  # es.: 4
 SR_PRIMARY_ROW_NAME = b"SR_X"  # lascia b"SR_X" se la riga si chiama così
 
 # Target fattori per combinazioni: chiave = substring nome combinazione (case-insensitive)
-# Esempio richiesto: 1 sotto "SISMA" e 0 sotto "SLU".
+# Esempio richiesto: 1 sotto "SLV q=4" e 0 sotto "SLU".
 TARGET_COMBO_MATCHES = {
-    "SISMA": 1.0,
+    "SLV q=4": 1.0,
     "SLU": 0.0,
 }
 
@@ -37,7 +37,7 @@ TARGET_COMBO_MATCHES = {
 # Esempio coerente con lo screenshot: {1: 0.0, 2: 1.0}
 COMBO_FACTORS_BY_INDEX = {
     1: 0.0,  # SLU
-    2: 1.0,  # SISMA q=4
+    2: 1.0,  # SLV q=4
 }
 # ------------------------------------------------------------
 
@@ -261,7 +261,7 @@ def _set_factor_on_sr_primary_row(uID, sr_primary_row: int, factor: float = 1.0)
         raise RuntimeError(f"GetNumCombinedLSACombinations failed: {e} ({_err()})")
 
     for pos in range(1, n.value + 1):
-        # Pos = indice combinazione (1=SLU, 2=SISMA q=4, ...)
+        # Pos = indice combinazione (1=SLU, 2=SLV q=4, ...)
         e = set_fac(uID, pos, sr_primary_row, C.c_double(factor))
         if e:
             raise RuntimeError(
@@ -296,7 +296,7 @@ def _set_factor_on_sr_row_by_combo_names(uID, sr_primary_row: int, targets: dict
     """
     Imposta il fattore in SR_PRIMARY_ROW solo per specifiche combinazioni
     identificate per *substring* nel nome combinazione.
-    Esempio: {"SISMA": 1.0, "SLU": 0.0}
+    Esempio: {"SLV q=4": 1.0, "SLU": 0.0}
     Se non è possibile leggere i nomi, non fa nulla.
     """
     get_num = getattr(st7, "St7GetNumCombinedLSACombinations", None)

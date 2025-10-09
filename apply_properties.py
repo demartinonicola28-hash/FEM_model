@@ -116,13 +116,17 @@ def _set_beam_material(uID: int, prop: int, E: float, nu: float, rho: float):
 # ---------------- API principale ---------------------------------------------
 def apply_properties(
     model_path: str,
+    section_columns: str,    # es. "HE 160 A" oppure nome completo
+    section_beams: str,      # es. "IPE 270"  oppure nome completo
     # materiale dal main:
     E: float,                # MPa
     nu: float,               # [-]
     rho: float,              # kg/m^3
-    # sezioni da libreria .BSL:
-    section_columns: str,    # es. "HE 160 A" oppure nome completo
-    section_beams: str,      # es. "IPE 270"  oppure nome completo
+    # resistenze acciaio:
+    steel_grade: str | None = None,
+    fy: float | None = None,     # MPa
+    fu: float | None = None,     # MPa
+    gamma_M0: float | None = None,
     prop_col: int = 1,
     prop_beam: int = 2,
     library_dir_bsl: str = r"C:\ProgramData\Straus7 R31\Data",
@@ -178,6 +182,9 @@ def apply_properties(
     return {
         "model_path": p,
         "E": E, "nu": nu, "rho": rho,
+        "steel_grade": steel_grade,
+        "fy": fy, "fu": fu,
+        "gamma_M0": gamma_M0,
         "section_columns": section_columns,
         "section_beams": section_beams,
         "prop_col": prop_col,

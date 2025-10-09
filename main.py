@@ -35,8 +35,7 @@ from import_spettro import run as import_spettro_run        # importa TXT -> Tab
 from spectral_analysis import run as spectral_run           # solver SR -> combina .SRA -> solver Linear Static
 
 # --- verifica elastica ---
-from stress_result import set_beam_util_equation  # definisce eq. utente per i BEAM
-
+from beam_result import max_check_value, list_result_cases
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -68,7 +67,11 @@ if __name__ == "__main__":
     # === Step 3: proprietà ====================================================
     props = apply_properties(
         model_path=geom["model_path"],
-        E=gui_params["E"],
+        steel_grade="S 355",
+        fy=gui_params["fy"],    # MPa
+        fu=gui_params["fu"],    # MPa
+        gamma_M0=gui_params["gamma_M0"],
+        E=gui_params["E"],      # MPa
         nu=gui_params["nu"],
         rho=gui_params["rho"],
         section_columns=gui_params["section_columns"],
@@ -78,6 +81,9 @@ if __name__ == "__main__":
         library_dir_bsl=r"C:\ProgramData\Straus7 R31\Data"
     )
     print("Proprietà applicate:", props)
+
+    # design yeld stress
+    DEN = gui_params["fy"]/gui_params["gamma_M0"]    # MPa
 
     # === Step 4: freedom case =================================================
     base_ids = [int(i) for i in geom["base_nodes"]]  # niente numpy.int32
@@ -118,7 +124,7 @@ if __name__ == "__main__":
         lc_Q=lc["load_cases"]["Q"],
         combos={
             "SLU":       {1: 1.35, 2: 1.35, 3: 1.50},
-            "SISMA q=4": {1: 1.00, 2: 1.00, 3: 0.30},
+            "SLV q=4": {1: 1.00, 2: 1.00, 3: 0.30},
         }
     )
     print("Combinazioni LSA create e solver avviato:", res)
@@ -163,6 +169,9 @@ if __name__ == "__main__":
     # === Step 9: analisi spettrale ===========================================
     # Esegue: solver Spectral Response -> import .SRA in combinazione -> solver Linear Static finale.
     print("Avvio analisi spettrale...")
+
+    #list_result_cases(path)  # stampa tutti i case: copia il nome esatto da qui
+
     try:
         sr_res = spectral_run(model_path=path)
         print("Analisi spettrale completata:", sr_res)
@@ -170,45 +179,19 @@ if __name__ == "__main__":
         print("Analisi spettrale fallita:", e)
         sys.exit(1)
 
-    # === Step 10: apertura automatica del file Straus7 ==========================
+    # === Step 10: Verifica elastica EN 1993-1-1:2005 (6.1) =====================
+    mx_slu = max_check_value(
+        path, case_name=["combination", "slu"], stations=10, den=DEN, print_table=True)
+    mx_slv = max_check_value(
+        path, case_name=["combination", "slv q=4"], stations=10, den=DEN, print_table=True)
+
+    print(f"η max SLU = {mx_slu:.3f}")
+    print("SLU verificato" if mx_slu <= 1.0 else "SLU NON verificato")
+
+    print(f"η max SLV = {mx_slv:.3f}")
+    print("SLV verificato" if mx_slv <= 1.0 else "SLV NON verificato")
+
+    # === Step 11: apertura automatica del file Straus7 ==========================
     print("Apertura automatica del file Straus7...")
     os.startfile(model)
-
-    # === Step 11: verifica sezioni (Beam Result Equation) =====================
-    # Scopo: creare e salvare nel modello Straus7 un'equazione di verifica
-    #        che combina le tensioni da N, M e T e verifica η = √(σ² + 3τ²)/fy ≤ 1
-    #        L’equazione sarà disponibile nel Contour dei Beam Results.
-
-    from beam_check import set_beam_util_equation  # definisce l’equazione utente
-
-    print("Creazione equazione di verifica sezioni (N+M+T)...")
-    uID = 1  # identificativo sessione Straus7
-
-    try:
-        # --- inizializza libreria Straus7 e apre il modello corrente ---
-        st7.St7Init()
-        ierr = st7.St7OpenFile(uID, path.encode("utf-8"), 0)
-        if ierr != 0:
-            raise RuntimeError(f"Errore apertura modello Straus7, iErr={ierr}")
-
-        # --- imposta il limite di snervamento fy (MPa) ---
-        fy = float(gui_params.get("fy_MPa", 355.0))  # default 355 MPa se non definito
-
-        # --- crea e registra l’equazione per i risultati dei beam ---
-        set_beam_util_equation(uID, fy, name=f"UTIL_NMT_fy{int(fy)}")
-
-        # --- salva il file con l’equazione integrata ---
-        st7.St7SaveFile(uID)
-        print(f"Equazione 'UTIL_NMT_fy{int(fy)}' salvata nel modello.")
-
-    except Exception as e:
-        print("Verifica sezioni fallita:", e)
-
-    finally:
-        # --- chiude la sessione API ---
-        try:
-            st7.St7CloseFile(uID)
-        except Exception:
-            pass
-        st7.St7UnLoad()
 

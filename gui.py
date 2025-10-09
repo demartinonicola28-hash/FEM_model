@@ -70,17 +70,17 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
 
     root = tk.Tk()
     root.title("Input Dati della Struttura")
-    root.geometry("1100x700")   # larghezza x altezza
+    root.geometry("1200x850")   # larghezza x altezza
     # Imposta l'icona della finestra
-    root.iconbitmap(r"C:\Users\demnic15950\Downloads\Low_Cycle_Fatigue_Analysis\icona.ico")  # Sostituisci "icona.ico" con il percorso corretto del tuo file icona    
+    root.iconbitmap(r"C:\Users\demnic15950\Downloads\FEM_model\icona.ico")  # Sostituisci "icona.ico" con il percorso corretto del tuo file icona    
 
 
     PAD = {"padx": 10, "pady": 6}
-    root.columnconfigure(0, weight=1, minsize=480)
+    root.columnconfigure(0, weight=0, minsize=400)
     root.columnconfigure(1, weight=1)
     root.rowconfigure(0, weight=1)
 
-    LABEL_W = 22
+    LABEL_W = 25
     def _row(parent, r, label_text, widget):
         ttk.Label(parent, text=label_text, width=LABEL_W, anchor="e").grid(row=r, column=0, sticky="e", **PAD)
         widget.grid(row=r, column=1, sticky="ew", **PAD)
@@ -102,12 +102,49 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
     # Materiale
     fm = ttk.LabelFrame(left, text="Materiale (acciaio)")
     fm.grid(row=1, column=0, sticky="nsew", **PAD); fm.columnconfigure(1, weight=1)
-    e_E   = ttk.Entry(fm); e_E.insert(0, "206000")
-    e_nu  = ttk.Entry(fm); e_nu.insert(0, "0.30")
-    e_rho = ttk.Entry(fm); e_rho.insert(0, "7850")
-    _row(fm, 0, "E [MPa]",   e_E)
-    _row(fm, 1, "ν [-]",     e_nu)
-    _row(fm, 2, "ρ [kg/m³]", e_rho)
+
+    # Mappa acciai
+    STEELS = {
+        "S 275": {"fy": 270, "fu": 430},
+        "S 355": {"fy": 355, "fu": 510},
+        "S 450": {"fy": 440, "fu": 550},
+    }
+
+    # Combobox acciaio
+    cb_acc = ttk.Combobox(fm, state="readonly", values=list(STEELS.keys()))
+    cb_acc.set("S 355")
+
+    # Campi base
+    e_E   = ttk.Entry(fm);  e_E.insert(0, "206000")
+    e_nu  = ttk.Entry(fm);  e_nu.insert(0, "0.30")
+    e_rho = ttk.Entry(fm);  e_rho.insert(0, "7850")
+
+    # Campi fy e fu (sola lettura)
+    e_fy = ttk.Entry(fm, state="readonly")
+    e_fu = ttk.Entry(fm, state="readonly")
+    e_gamma_M0 = ttk.Entry(fm); e_gamma_M0.insert(0, "1.05")
+
+    def _update_strengths(event=None):
+        g = cb_acc.get()
+        fy = STEELS[g]["fy"]; fu = STEELS[g]["fu"]
+        e_fy.config(state="normal"); e_fu.config(state="normal")
+        e_fy.delete(0, "end"); e_fu.delete(0, "end")
+        e_fy.insert(0, str(fy)); e_fu.insert(0, str(fu))
+        e_fy.config(state="readonly"); e_fu.config(state="readonly")
+
+    cb_acc.bind("<<ComboboxSelected>>", _update_strengths)
+
+    # Layout
+    _row(fm, 0, "Acciaio", cb_acc)
+    _row(fm, 1, "fy [MPa]",  e_fy)
+    _row(fm, 2, "fu [MPa]",  e_fu)
+    _row(fm, 3, "E [MPa]",   e_E)
+    _row(fm, 4, "ν [-]",     e_nu)
+    _row(fm, 5, "ρ [kg/m³]", e_rho)
+    _row(fm, 7, "γᴍ₀ [-]", e_gamma_M0)
+
+    # inizializza
+    _update_strengths()
 
     # Sezioni
     fs = ttk.LabelFrame(left, text="Sezioni (BS EN)")
@@ -148,8 +185,15 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
             res.update({
                 "h_story": float(e_h.get()), "span": float(e_L.get()),
                 "n_floors": int(e_np.get()), "offset": float(e_off.get()),
-                "E": float(e_E.get()), "nu": float(e_nu.get()), "rho": float(e_rho.get()),
-                "section_columns": cb_he.get().strip(), "section_beams": cb_ipe.get().strip(),
+                "steel_grade": cb_acc.get(),
+                "fy": float(e_fy.get()),
+                "fu": float(e_fu.get()),
+                "E": float(e_E.get()),
+                "nu": float(e_nu.get()),
+                "rho": float(e_rho.get()),
+                "gamma_M0":float(e_gamma_M0.get()),
+                "section_columns": cb_he.get().strip(),
+                "section_beams": cb_ipe.get().strip(),
                 # superfici in kN/m²
                 "G2_int_kNm2":  float(e_g2_int_m2.get()),
                 "G2_roof_kNm2": float(e_g2_roof_m2.get()),
@@ -165,23 +209,53 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
     root.protocol("WM_DELETE_WINDOW", _cancel); root.bind("<Escape>", _cancel)
 
     # Immagine destra
-    right = tk.Frame(root); right.grid(row=0, column=1, sticky="nsew")
-    right.rowconfigure(0, weight=1); right.columnconfigure(0, weight=1)
-    img_label = tk.Label(right, bd=1, relief="solid", bg="white")
-    img_label.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+    right = tk.Frame(root)
+    right.grid(row=0, column=1, sticky="nsew")
+    right.rowconfigure(0, weight=1)
+    right.columnconfigure(0, weight=1)
+
+    # cornice bianca fissa
+    IMG_W, IMG_H = 2000, 1500  # spazio totale bianco
+    frame_img = tk.Frame(right, width=IMG_W, height=IMG_H, bg="white", relief="solid", bd=1)
+    frame_img.grid(row=0, column=0, padx=12, pady=12)
+    frame_img.grid_propagate(False)  # impedisce al frame di ridimensionarsi
+
+    # label centrato dentro
+    img_label = tk.Label(frame_img, bg="white")
+    img_label.place(relx=0.5, rely=0.5, anchor="center")
+
+    # immagine ridotta a dimensione fissa
+    MAX_W, MAX_H = 800, 600  # solo immagine, dentro lo spazio bianco
+
     def _load_and_fit(p):
         if not os.path.exists(p):
-            img_label.config(text=f"(Immagine non trovata)\n{p}", justify="center", bg="white"); return
+            img_label.config(text=f"(Immagine non trovata)\n{p}", justify="center", bg="white", image="")
+            return
+
         if _HAS_PIL:
-            w = max(360, right.winfo_width() - 20 or 480)
-            h = max(500, right.winfo_height() - 40 or 700)
-            im = Image.open(p); im.thumbnail((w, h), Image.LANCZOS)
-            img_label._img = ImageTk.PhotoImage(im)
+            im = Image.open(p)
+            im.thumbnail((MAX_W, MAX_H), Image.LANCZOS)
+            img = ImageTk.PhotoImage(im)
         else:
-            img_label._img = tk.PhotoImage(file=p)
-        img_label.config(image=img_label._img)
-    root.after(50, lambda: _load_and_fit(image_path))
-    right.bind("<Configure>", lambda e: _load_and_fit(image_path))
+            tmp = tk.PhotoImage(file=p)
+            fx = max(1, (tmp.width()  + MAX_W  - 1) // MAX_W)
+            fy = max(1, (tmp.height() + MAX_H - 1) // MAX_H)
+            img = tmp.subsample(max(fx, fy))
+
+        img_label._img = img
+        img_label.config(image=img, text="")
+
+
+    # primo render dopo il layout
+    root.after(100, lambda: _load_and_fit(image_path))
+    # aggiornamento quando il pannello cambia dimensione
+    _pending = None
+    def _on_conf(e):
+        nonlocal _pending
+        if _pending:
+            root.after_cancel(_pending)
+        _pending = root.after(120, lambda: _load_and_fit(image_path))
+    right.bind("<Configure>", _on_conf)
 
     root.mainloop()
     return res if res.get("ok") else None
