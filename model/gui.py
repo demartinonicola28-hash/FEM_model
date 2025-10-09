@@ -72,7 +72,7 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
     root.title("Input Dati della Struttura")
     root.geometry("1200x850")   # larghezza x altezza
     # Imposta l'icona della finestra
-    root.iconbitmap(r"C:\Users\demnic15950\Downloads\FEM_model\icona.ico")  # Sostituisci "icona.ico" con il percorso corretto del tuo file icona    
+    root.iconbitmap(r"C:\Users\demnic15950\Downloads\FEM_model\utils\icona.ico")  # Sostituisci "icona.ico" con il percorso corretto del tuo file icona    
 
 
     PAD = {"padx": 10, "pady": 6}

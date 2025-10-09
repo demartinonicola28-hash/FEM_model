@@ -13,29 +13,13 @@
 
 import sys
 import os
+
+import St7API as st7
 from pathlib import Path
 
-# --- crea modello FEM ---
-from create_file import create_file                 # crea un nuovo file .st7 e restituisce il path
-from gui import run_gui                             # apre la GUI; ritorna dict parametri o None se annullata
-from build_geometry import build_geometry           # costruisce nodi/elementi; ritorna info su path e nodi base
-from apply_properties import apply_properties       # assegna materiale e sezioni; ritorna riepilogo proprietà
-from freedom_case import apply_freedom_case         # definisce i gradi di libertà bloccati; ritorna dict con numero caso
-from load_cases import apply_load_cases
+from model import create_file, build_geometry, apply_properties, apply_freedom_case, apply_load_cases, run_gui
+from analysis import lsa_combine_and_solve, run_modal_analysis, import_spettro_run, spectral_run, max_check_value, list_result_cases
 
-# --- analisi statica SLU ---
-from lsa_combine_and_solve import lsa_combine_and_solve  # crea combinazioni e lancia solver LSA
-
-# --- analisi modale ---
-import St7API as st7
-from modal_analysis import run_modal_analysis, default_model_path
-
-# --- analisi spettrale ---
-from import_spettro import run as import_spettro_run        # importa TXT -> Table ttVsFrequency (asse Period, unità g)
-from spectral_analysis import run as spectral_run           # solver SR -> combina .SRA -> solver Linear Static
-
-# --- verifica elastica ---
-from beam_result import max_check_value, list_result_cases
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -48,10 +32,12 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # === Step 1: crea file ====================================================
+    # crea un nuovo file .st7 e restituisce il path
     path = create_file("telaio_2D.st7")
     print("File generato:", path)
 
     # === Step 2: geometria ====================================================
+    # costruisce nodi/elementi; ritorna info su path e nodi base
     geom = build_geometry(
         path,
         h_story=gui_params["h_story"],
@@ -65,6 +51,7 @@ if __name__ == "__main__":
     print("Nodi di base:", geom["base_nodes"])
 
     # === Step 3: proprietà ====================================================
+    # assegna materiale e sezioni; ritorna riepilogo proprietà
     props = apply_properties(
         model_path=geom["model_path"],
         steel_grade="S 355",
@@ -86,6 +73,7 @@ if __name__ == "__main__":
     DEN = gui_params["fy"]/gui_params["gamma_M0"]    # MPa
 
     # === Step 4: freedom case =================================================
+    # definisce i gradi di libertà bloccati; ritorna dict con numero caso
     base_ids = [int(i) for i in geom["base_nodes"]]  # niente numpy.int32
     if not base_ids:
         raise ValueError("base_nodes è vuoto")
