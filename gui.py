@@ -70,7 +70,10 @@ def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometr
 
     root = tk.Tk()
     root.title("Input Dati della Struttura")
-    root.geometry("1100x700")
+    root.geometry("1100x700")   # larghezza x altezza
+    # Imposta l'icona della finestra
+    root.iconbitmap(r"C:\Users\demnic15950\Downloads\Low_Cycle_Fatigue_Analysis\icona.ico")  # Sostituisci "icona.ico" con il percorso corretto del tuo file icona    
+
 
     PAD = {"padx": 10, "pady": 6}
     root.columnconfigure(0, weight=1, minsize=480)

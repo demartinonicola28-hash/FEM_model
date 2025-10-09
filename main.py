@@ -34,6 +34,9 @@ from modal_analysis import run_modal_analysis, default_model_path
 from import_spettro import run as import_spettro_run        # importa TXT -> Table ttVsFrequency (asse Period, unità g)
 from spectral_analysis import run as spectral_run           # solver SR -> combina .SRA -> solver Linear Static
 
+# --- verifica elastica ---
+from stress_result import set_beam_util_equation  # definisce eq. utente per i BEAM
+
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -170,3 +173,42 @@ if __name__ == "__main__":
     # === Step 10: apertura automatica del file Straus7 ==========================
     print("Apertura automatica del file Straus7...")
     os.startfile(model)
+
+    # === Step 11: verifica sezioni (Beam Result Equation) =====================
+    # Scopo: creare e salvare nel modello Straus7 un'equazione di verifica
+    #        che combina le tensioni da N, M e T e verifica η = √(σ² + 3τ²)/fy ≤ 1
+    #        L’equazione sarà disponibile nel Contour dei Beam Results.
+
+    from beam_check import set_beam_util_equation  # definisce l’equazione utente
+
+    print("Creazione equazione di verifica sezioni (N+M+T)...")
+    uID = 1  # identificativo sessione Straus7
+
+    try:
+        # --- inizializza libreria Straus7 e apre il modello corrente ---
+        st7.St7Init()
+        ierr = st7.St7OpenFile(uID, path.encode("utf-8"), 0)
+        if ierr != 0:
+            raise RuntimeError(f"Errore apertura modello Straus7, iErr={ierr}")
+
+        # --- imposta il limite di snervamento fy (MPa) ---
+        fy = float(gui_params.get("fy_MPa", 355.0))  # default 355 MPa se non definito
+
+        # --- crea e registra l’equazione per i risultati dei beam ---
+        set_beam_util_equation(uID, fy, name=f"UTIL_NMT_fy{int(fy)}")
+
+        # --- salva il file con l’equazione integrata ---
+        st7.St7SaveFile(uID)
+        print(f"Equazione 'UTIL_NMT_fy{int(fy)}' salvata nel modello.")
+
+    except Exception as e:
+        print("Verifica sezioni fallita:", e)
+
+    finally:
+        # --- chiude la sessione API ---
+        try:
+            st7.St7CloseFile(uID)
+        except Exception:
+            pass
+        st7.St7UnLoad()
+
