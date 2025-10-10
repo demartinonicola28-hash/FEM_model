@@ -57,7 +57,7 @@ def _filter_by_family(items, family):
     res=[s for s,u in up if any(tok in u for tok in toks)]
     return res or items
 
-def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/geometry_scheme.png") -> dict | None:
+def run_gui(image_path: str = r"C:/Users/demnic15950/Downloads/FEM_model/utils/geometry_scheme.png") -> dict | None:
     try:
         ALL = _load_all_beam_sections_british(r"C:\ProgramData\Straus7 R31\Data")
     except Exception:

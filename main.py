@@ -14,11 +14,31 @@
 import sys
 import os
 
+# Ensure the parent directory of 'analysis' is in the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'model')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'analysis')))
+
+DLL_DIR = r"C:\Program Files\Straus7 R31\Bin64"
+if not os.path.isdir(DLL_DIR):
+    raise RuntimeError(f"Percorso DLL non trovato: {DLL_DIR}")
+os.add_dll_directory(DLL_DIR)
+
 import St7API as st7
+
 from pathlib import Path
 
-from model import create_file, build_geometry, apply_properties, apply_freedom_case, apply_load_cases, run_gui
-from analysis import lsa_combine_and_solve, run_modal_analysis, import_spettro_run, spectral_run, max_check_value, list_result_cases
+from model.gui import run_gui
+from model.create_file import create_file
+from model.build_geometry import build_geometry
+from model.apply_properties import apply_properties
+from model.freedom_case import apply_freedom_case
+from model.load_cases import apply_load_cases
+
+from analysis.lsa_combine_and_solve import lsa_combine_and_solve
+from analysis.modal_analysis import run_modal_analysis
+from analysis.import_spettro import run as import_spettro_run
+from analysis.spectral_analysis import run as spectral_run
+from analysis.beam_result import max_check_value, list_result_cases
 
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
@@ -33,7 +53,7 @@ if __name__ == "__main__":
 
     # === Step 1: crea file ====================================================
     # crea un nuovo file .st7 e restituisce il path
-    path = create_file("telaio_2D.st7")
+    path = create_file("model/telaio_2D.st7")
     print("File generato:", path)
 
     # === Step 2: geometria ====================================================

@@ -1,0 +1,152 @@
+*SOLUTION COMMENCED AT 11:39 ON 10/10/2025 
+  
+ Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
+  
+ LICENCED TO                 : PINECA UNIPD 50 POSTI DI LAVORO 
+  
+ ANALYSIS TYPE               : NATURAL FREQUENCY 
+  
+ COMPUTER NAME               : PC-104 
+ USER LOGON NAME             : demnic15950 
+ CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
+ USABLE PHYSICAL MEMORY      : 15.8 GB 
+ USABLE VIRTUAL MEMORY       : 18.2 GB 
+  
+ MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\model\telaio_2D.st7" 
+ RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\model\telaio_2D.NFA" 
+ SCRATCH PATH                : "C:\Users\demnic15950\Downloads\FEM_model\model\_scratch\" 
+  
+ TOTALS 
+ Nodes                       : 14 
+ Beams                       : 14 
+ Plates                      : 0 
+ Bricks                      : 0 
+ Links                       : 0 
+  
+ SOLVER UNITS 
+ Length                      : m 
+ Mass                        : kg 
+ Force                       : N 
+ Stress                      : Pa 
+  
+ FREEDOM CASE                : "1:2D Beam XY" 
+  
+ MASS MATRIX OPTION 
+ Beam Elements               : Lumped 
+ Global Matrix               : Diagonal 
+ Global Mass X               : Included 
+ Global Mass Y               : Included 
+ Global Mass Z               : Included 
+ Global Rotational Mass      : Included 
+ Non-Structural Mass Cases   : "1:G1" 
+                             : "2:G2" 
+                             : "3:Q" 
+  
+ STORAGE SCHEME              : Sparse  
+ SORTING METHOD              : AMD  
+  
+ NUMBER OF EQUATIONS         : 36 
+ MATRIX FILL-IN              : 25.8% 
+ [K] MATRIX SIZE             : 1.9 KB 
+ [M] MATRIX SIZE             : < 1 KB 
+ MODE MATRIX SIZE            : 3.9 KB 
+ OPTIMUM RAM NEEDED          : 128.0 KB 
+ FREE SCRATCH SPACE          : 174.7 GB 
+  
+*WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
+  
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
+  
+ MAXIMUM PIVOT               : 9.324933E+08 (Node 13 DY) 
+ MINIMUM PIVOT               : 6.240339E+05 (Node 7 DX) 
+  
+ NODAL DISPLACEMENT COMPONENTS USED IN STARTING VECTOR 
+       3:DX         2:DX         6:DY         7:DY         2:DY         3:DY  
+  
+ SUBSPACE ITERATION 
+ Natural frequencies         : 2  
+ Mass degrees of freedom     : 24 
+ Subspace dimension          : 7 
+ Convergence tolerance       : 1.000000E-05 
+ Frequency shift             : 0.000000E+00 Hz 
+  
+ ITERATION 1 
+ Current Frequencies (Hz) 
+ +1.02800E+00 +2.70887E+00 +5.14790E+00 +5.99501E+00 +1.27821E+01 
+ +1.57002E+01 +5.32958E+01 
+  
+ ITERATION 2 
+ Current Frequencies (Hz)                                          Relative Difference [0 Converged] 
+ +1.02777E+00 +2.70539E+00 +5.14806E+00 +5.99497E+00 +1.27788E+01  [ 2.17E-04  1.29E-03  3.15E-05  ........  2.60E-04 ] 
+ +1.56816E+01 +4.89067E+01                                         [ 1.19E-03  8.97E-02                               ] 
+  
+ ITERATION 3 
+ Current Frequencies (Hz)                                          Relative Difference [2 Converged] 
+ +1.02777E+00 +2.70539E+00 +5.14798E+00 +5.99507E+00 +1.27818E+01  [ ........  ........  1.58E-05  1.64E-05  2.37E-04 ] 
+ +1.56827E+01 +4.87498E+01                                         [ 7.19E-05  3.22E-03                               ] 
+  
+ ITERATION 4 
+ Current Frequencies (Hz)                                          Relative Difference [2 Converged] 
+ +1.02777E+00 +2.70539E+00 +5.14797E+00 +5.99492E+00 +1.27774E+01  [ ........  ........  ........  2.50E-05  3.42E-04 ] 
+ +1.56856E+01 +4.87133E+01                                         [ 1.86E-04  7.49E-04                               ] 
+  
+ ITERATION 5 
+ Current Frequencies (Hz)                                          Relative Difference [2 Converged] 
+ +1.02777E+00 +2.70539E+00 +5.14786E+00 +5.99485E+00 +1.27770E+01  [ ........  ........  2.00E-05  1.09E-05  2.94E-05 ] 
+ +1.56842E+01 +4.82054E+01                                         [ 9.19E-05  1.05E-02                               ] 
+  
+ FINAL FREQUENCY RESULTS 
+ Mode      Eigenvalue     Frequency (rad/s)  Frequency (Hz)      Period (s) 
+    1   +4.17017105E+01   +6.45768616E+00   +1.02777267E+00   +9.72977805E-01 
+    2   +2.88947685E+02   +1.69984612E+01   +2.70538913E+00   +3.69632593E-01 
+  
+ NODE/DOF EIGENVECTOR NORMALISATION FOR ENGINEERING MODAL MASS AND STIFFNESS 
+ Mode  Frequency (Hz)     Node   DoF 
+    1   1.027773E+00         7    DX 
+    2   2.705389E+00         3    DX 
+  
+ MODE PARTICIPATION FACTORS FOR TRANSLATIONAL EXCITATION 
+ Mode    Frequency       P-DX          P-DY          P-DZ          P-RX          P-RY          P-RZ 
+            (Hz)       SQRT(N/m)     SQRT(N/m)     SQRT(N/m)     SQRT(N.m)     SQRT(N.m)     SQRT(N.m)  
+    1  1.027773E+00  1.591573E+02  6.295442E-14  0.000000E+00  0.000000E+00  0.000000E+00 -8.363311E+02 
+    2  2.705389E+00  4.332055E+01 -1.192233E-11  0.000000E+00  0.000000E+00  0.000000E+00  5.748853E+01 
+  
+ TOTAL MASS (MX,MY,MZ) (kg)  : (2.723843E+04,2.723843E+04,0.000000E+00)  
+  
+ MODE PARTICIPATION MASS RATIOS FOR TRANSLATIONAL EXCITATION 
+ Mode    Frequency    Modal Mass    Modal Stiff      P-DX          P-DY          P-DZ         P-DX    P-DY    P-DZ 
+            (Hz)         (kg)          (N/m)          (%)           (%)           (%)          (%)     (%)     (%) 
+    1  1.027773E+00  1.602911E+04  6.684414E+05  9.299740E+01  1.455024E-29  0.000000E+00    92.997   0.000   0.000 
+    2  2.705389E+00  2.647732E+04  7.650562E+06  6.889787E+00  5.218432E-25  0.000000E+00     6.890   0.000   0.000 
+ ----------------------------------------------------------------------------------------   -----------------------  
+ TOTAL TRANSLATIONAL MASS PARTICIPATION (%)      9.988718E+01  5.218578E-25  0.000000E+00    99.887   0.000   0.000 
+  
+ MODE PARTICIPATION MASS RATIOS FOR ROTATIONAL EXCITATION 
+ Mode    Frequency    Modal Mass    Modal Stiff      P-RX          P-RY          P-RZ         P-RX    P-RY    P-RZ 
+            (Hz)       (kg.m^2)        (N.m)          (%)           (%)           (%)          (%)     (%)     (%) 
+    1  1.027773E+00                              0.000000E+00  0.000000E+00  7.361780E+01     0.000   0.000  73.618  
+    2  2.705389E+00                              0.000000E+00  0.000000E+00  3.478474E-01     0.000   0.000   0.348  
+ ----------------------------------------------------------------------------------------   -----------------------  
+ TOTAL ROTATIONAL MASS PARTICIPATION (%)         0.000000E+00  0.000000E+00  7.396565E+01     0.000   0.000  73.966 
+  
+ COUNTING MODES IN RANGE     :   1.02760491E+00 to  2.70555689E+00  
+  
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
+  
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
+  
+ STURM CHECK RESULTS 
+ There are no natural frequencies below 1.028E+00 Hz. 
+ There are 2 frequencies below 2.706E+00 Hz. 
+ All eigenvalues are found. 
+  
+ TOTAL CPU TIME              : 0.688 Seconds 
+  
+ 
+*SUMMARY OF MESSAGES
+*Number of Notes    : 0
+*Number of Warnings : 1
+*Number of Errors   : 0
+ 
+*SOLUTION COMPLETED AT 11:39 ON 10/10/2025 
+*SOLUTION TIME: 1 Second 

@@ -153,12 +153,11 @@ def max_check_value(model_path: str,
         η² = (FB/den)² + 3*(SY/den)²
 
     dove:
-      FB = max(|MaxFibreStress|, |MinFibreStress|)            [kN/m²]
-      SY = |Mean Shear Stress da Shear Force 2 (piano y)|     [kN/m²]
+      FB = max(|MaxFibreStress|, |MinFibreStress|)            [MPa]
+      SY = |Mean Shear Stress da Shear Force 2 (piano y)|     [MPa]
       den = fy / γM0                                           [MPa]
 
-    Tutti i risultati di Straus7 sono in kN/m² (per modelli kN–m),
-    per cui si convertono in MPa moltiplicando per 1.0e-3.
+    Tutti i risultati di Straus7 sono in MPa
 
     Parametri:
       model_path : percorso completo del file .st7 del modello
@@ -204,7 +203,7 @@ def max_check_value(model_path: str,
 
         # Stampa intestazione tabella, se richiesto
         if print_table:
-            header = f"{'Beam':>5} {'s':>6} {'FBmax[kN/m²]':>15} {'FBmin[kN/m²]':>15} {'SY[kN/m²]':>12} {'FBabs[kN/m²]':>15} {'η²':>10}"
+            header = f"{'Beam':>5} {'s':>6} {'FBmax[MPa]':>15} {'FBmin[MPa]':>15} {'SY[MPa]':>12} {'FBabs[MPa]':>15} {'η²':>10}"
             print("\n" + header)
             print("-" * len(header))
 
@@ -229,22 +228,22 @@ def max_check_value(model_path: str,
             ns, nc = NumStations.value, NumColumns.value
 
             # Indici per accedere alle colonne dei risultati nel pacchetto All Stress
-            i_max_fibre = st7.ipMaxFibreStress          # max fibre stress (kN/m²)
-            i_min_fibre = st7.ipMinFibreStress          # min fibre stress (kN/m²)
+            i_max_fibre = st7.ipMaxFibreStress          # max fibre stress (MPa)
+            i_min_fibre = st7.ipMinFibreStress          # min fibre stress (MPa)
             i_shear_y   = st7.ipShearF2MeanShearStress  # mean shear stress (plane 2 → y)
 
             # 7) Loop sulle stazioni lungo la trave
             for k in range(ns):
                 s_par = BeamPos[k]                      # posizione normalizzata 0..1
-                s_max = BeamResult[k*nc + i_max_fibre]  # kN/m²
-                s_min = BeamResult[k*nc + i_min_fibre]  # kN/m²
-                s_y   = BeamResult[k*nc + i_shear_y]    # kN/m²
+                s_max = BeamResult[i_max_fibre]  # MPa
+                s_min = BeamResult[i_min_fibre]  # MPa
+                s_y   = BeamResult[i_shear_y]    # MPa
 
-                # Tensioni in kN/m² → MPa per il confronto con den
-                FBmax = abs(s_max) * 1.0e-3
-                FBmin = abs(s_min) * 1.0e-3
+                # Tensioni in MPa per il confronto con den
+                FBmax = abs(s_max)
+                FBmin = abs(s_min)
                 FBabs = max(FBmax, FBmin)
-                SY    = abs(s_y) * 1.0e-3
+                SY    = abs(s_y)
 
                 # Calcolo dell’espressione EC3 (η²)
                 val = (FBabs/den)**2 + 3.0*(SY/den)**2
@@ -253,7 +252,7 @@ def max_check_value(model_path: str,
 
                 # Stampa tabella per ogni stazione
                 if print_table:
-                    print(f"{b:5d} {s_par:6.3f} {FBmax/_KNSQM_TO_MPA:15.2f} {FBmin/_KNSQM_TO_MPA:15.2f} {SY/_KNSQM_TO_MPA:12.2f} {FBabs/_KNSQM_TO_MPA:15.2f} {val:10.3f}")
+                    print(f"{b:5d} {s_par:6.3f} {s_max:15.2f} {s_min:15.2f} {s_y:12.2f} {FBabs:15.2f} {val:10.3f}")
 
         # Ritorna il massimo valore trovato
         return vmax
