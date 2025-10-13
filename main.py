@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     # === Step 1: crea file ====================================================
     # crea un nuovo file .st7 e restituisce il path
-    path = create_file("model/telaio_2D.st7")
+    path = create_file("straus7_model/telaio_2D.st7")
     print("File generato:", path)
 
     # === Step 2: geometria ====================================================
@@ -188,18 +188,16 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # === Step 10: Verifica elastica EN 1993-1-1:2005 (6.1) =====================
-    mx_slu = max_check_value(
-        path, case_name=["combination", "slu"], stations=10, den=DEN, print_table=True)
-    mx_slv = max_check_value(
-        path, case_name=["combination", "slv q=4"], stations=10, den=DEN, print_table=True)
+    mx_slu, b_slu, pnum_slu, pname_slu = max_check_value(path, ["combination", "slu"], stations=100, den=DEN, print_table=True)
+    mx_slv, b_slv, pnum_slv, pname_slv = max_check_value(path, ["combination", "slv q=4"], stations=100, den=DEN, print_table=True)
 
-    print(f"η max SLU = {mx_slu:.3f}")
+    print(f"\nη max SLU = {mx_slu:.3f}  | beam {b_slu}  | section “{pname_slu}”")
     print("SLU verificato" if mx_slu <= 1.0 else "SLU NON verificato")
 
-    print(f"η max SLV = {mx_slv:.3f}")
+    print(f"\nη max SLV = {mx_slv:.3f}  | beam {b_slv}  | section “{pname_slv}”")
     print("SLV verificato" if mx_slv <= 1.0 else "SLV NON verificato")
 
-    # === Step 11: apertura automatica del file Straus7 ==========================
-    print("Apertura automatica del file Straus7...")
-    os.startfile(model)
 
+    # === Step 11: apertura automatica del file Straus7 ==========================
+    print("\nApertura automatica del file Straus7...")
+    os.startfile(model)

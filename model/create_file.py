@@ -19,6 +19,7 @@ def check(rc: int):
 def create_file(filename: str = "telaio_2d.st7"):
     """Crea un file Straus7 e imposta le unità di misura standard."""
     model_path = os.path.abspath(filename)
+    os.system('taskkill /IM Straus7.exe /F >nul 2>&1')
     uID = 1
     check(St7Init())
     check(St7NewFile(uID, model_path.encode("utf-8"), b""))
