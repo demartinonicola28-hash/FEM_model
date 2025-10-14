@@ -85,7 +85,7 @@ def _run(uID, solver_enum):
     - tenta eventuali API di chiusura/occultamento
     """
     # run mode: background > normal
-    run_mode = getattr(st7, "smBackgroundRun", None) or getattr(st7, "smNormalRun", None)
+    run_mode =  getattr(st7, "smBackgroundRun", None) or getattr(st7, "smNormalRun", None)
     if run_mode is None:
         raise RuntimeError("Run mode solver non disponibile nel wrapper.")
 

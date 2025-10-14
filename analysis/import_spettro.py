@@ -10,7 +10,7 @@ import re
 import St7API as st7  # wrapper ufficiale Straus7
 
 # === Config di default =====================================================
-SPECTRUM_TXT = "utils/spettro_ntc18.txt"   # TXT con due colonne: T[s]  Sd[g]
+SPECTRUM_TXT = "spettro_ntc18/spettro_ntc18.txt"   # TXT con due colonne: T[s]  Sd[g]
 MODEL_UID    = 1                     # uID del modello
 TABLE_ID     = 1                   # scegli un ID libero e positivo
 TABLE_NAME   = b"design_spectre"     # nome desiderato della tabella (bytes)

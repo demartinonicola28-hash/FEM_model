@@ -60,7 +60,7 @@ def run_modal_analysis(model_path, scratch_path, n_modes=10, res_path=None, log_
         _api_err(st.St7SetNFAModeParticipationVectors(uID, doubles))
 
         # Lancia solver Natural Frequency e attendi fine
-        ierr = st.St7RunSolver(uID, st.stNaturalFrequency, st.smNormalCloseRun, True)         # :contentReference[oaicite:7]{index=7}
+        ierr = st.St7RunSolver(uID, st.stNaturalFrequency, st.smBackgroundRun, True)         # :contentReference[oaicite:7]{index=7}
         if ierr != st.ERR7_NoError:
             buf = (ctypes.c_char * KMAX)()
             st.St7GetSolverErrorString(ierr, buf, KMAX)                                       # :contentReference[oaicite:8]{index=8}

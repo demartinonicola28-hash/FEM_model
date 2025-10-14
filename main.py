@@ -13,6 +13,7 @@
 
 import sys
 import os
+import St7API as st7
 
 # Ensure the parent directory of 'analysis' is in the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'model')))
@@ -22,8 +23,6 @@ DLL_DIR = r"C:\Program Files\Straus7 R31\Bin64"
 if not os.path.isdir(DLL_DIR):
     raise RuntimeError(f"Percorso DLL non trovato: {DLL_DIR}")
 os.add_dll_directory(DLL_DIR)
-
-import St7API as st7
 
 from pathlib import Path
 
@@ -36,10 +35,11 @@ from model.load_cases import apply_load_cases
 
 from analysis.lsa_combine_and_solve import lsa_combine_and_solve
 from analysis.modal_analysis import run_modal_analysis
+from spettro_ntc18.spettro_ntc18 import run_spettro_ntc18_gui
 from analysis.import_spettro import run as import_spettro_run
 from analysis.spectral_analysis import run as spectral_run
 from analysis.beam_result import max_check_value, list_result_cases
-
+from analysis.import_accelerogram import run
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -164,8 +164,23 @@ if __name__ == "__main__":
 
     print("Analisi modale completata e risultati salvati in:", res)
 
-    # === Step 8: import spettro nel Table ====================================
-    # Esegue: lettura TXT spettro -> tabella Factor vs Period (asse = Period, unità = acceleration response in g).
+    # === Step 8: create and import spettro nel Table ====================================
+
+    # 1) Calcolo ed export spettro NTC18 (GUI + salvataggio JPG/TXT)
+    try:
+        # cartella dove si trova questo script
+        path_spettro = os.path.join("spettro_ntc18") # cartella dove salvare lo spettro
+
+        # esegui GUI e salva in questa cartella
+        res = run_spettro_ntc18_gui(output_dir=path_spettro, show_plot=True)
+
+        print("Spettro NTC18 generato in:", path_spettro)
+    except Exception as e:
+        print("Errore generazione spettro NTC18:", e)
+        sys.exit(1)
+
+
+    # 2) Esegue: lettura TXT spettro -> tabella Factor vs Period (asse = Period, unità = acceleration response in g).
     print("Import spettro nel Table...")
     try:
         imp_res = import_spettro_run(model_path=path)
@@ -173,7 +188,7 @@ if __name__ == "__main__":
     except Exception as e:
         print("Import spettro fallito:", e)
         sys.exit(1)
-
+    
     # === Step 9: analisi spettrale ===========================================
     # Esegue: solver Spectral Response -> import .SRA in combinazione -> solver Linear Static finale.
     print("Avvio analisi spettrale...")
@@ -197,7 +212,25 @@ if __name__ == "__main__":
     print(f"\nη max SLV = {mx_slv:.3f}  | beam {b_slv}  | section “{pname_slv}”")
     print("SLV verificato" if mx_slv <= 1.0 else "SLV NON verificato")
 
+    # === Step 11: import accelerogramma ===========================================
+    base = Path(__file__).parent
+    model_dir = base / "straus7_model"
+    acc_dir   = base / "accelerogram"
 
-    # === Step 11: apertura automatica del file Straus7 ==========================
+    # se sai il nome del file:
+    model = model_dir / "Telaio_2D.st7"  # <-- metti il nome reale
+    assert model.is_file(), f"Modello non trovato: {model}"
+    ids = run(model_path=str(model), acc_dir=str(acc_dir), names=("acc1","acc2","acc3"), units="g")
+    print(ids)
+
+    # in alternativa, prendi il primo .st7 nella cartella:
+    # candidates = sorted(model_dir.glob("*.st7"))
+    # assert candidates, f"Nessun .st7 in {model_dir}"
+    # ids = run(model_path=str(candidates[0]), acc_dir=str(acc_dir))
+
+    # === Step 12: setup e solve ===============================================
+    #run_LTD(uid, acc_table_name="acc1")    # SIAMO ARRIVATI QUI
+
+    # === Step 13: apertura automatica del file Straus7 ==========================
     print("\nApertura automatica del file Straus7...")
     os.startfile(model)

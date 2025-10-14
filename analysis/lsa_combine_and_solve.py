@@ -11,7 +11,7 @@
 #                              long FreedomCaseNum, double Factor)
 #   St7RunSolver(long uID, long Solver, long Mode, long Wait)
 #       -> Solver = solver_lin_static (dal tuo St7API.py)
-#       -> Mode   = smNormalRun (attendi fine solver nello stesso processo)
+#       -> Mode   = smBackgroundRun
 #       -> Wait   = 1 (blocca finché termina)
 
 import os
@@ -64,6 +64,13 @@ def lsa_combine_and_solve(model_path: str,
             "SLV q=4": {lc_G1: 1.00, lc_G2: 1.00, lc_Q: 0.30},
         }
 
+    # NEW: azzera qualsiasi dialog di licenza PRIMA di St7Init (silenzioso)
+    try:
+        from St7API import lmWaitRetry
+        check(St7SetLicenceOptions(lmWaitRetry, 1, 1))
+    except Exception:
+        pass
+
     # 1) apri modello
     check(St7Init())
     check(St7OpenFile(uID, _b(p), b""))
@@ -106,22 +113,40 @@ def lsa_combine_and_solve(model_path: str,
     # 4) lancia solver Linear Static
     #    Firma corretta: St7RunSolver(uID, Solver, Mode, Wait) -> TUTTI long
     #    - Solver: costante 'solver_lin_static' (dal tuo St7API.py)
-    #    - Mode:   smNormalRun (o smProgressRun se vuoi GUI progress)
+    #    - Mode:   smBackgroundRun senza dialog
     #    - Wait:   1 (attendi termine), 0 (ritorna subito)
     try:
         solver_id = solver_lin_static   # definita nel wrapper
     except NameError:
         solver_id = 1                   # fallback ragionevole
     try:
-        run_mode = smNormalCloseRun          # esecuzione “normale”
+        run_mode = smBackgroundRun      # niente dialog/progress
     except NameError:
         run_mode = 0
+
+    # NEW: forza l'uso del solver in DLL per evitare l'eseguibile esterno con finestra
+    try:
+        check(St7SetUseSolverDLL(True))
+    except Exception:
+        pass
+
+    # NEW: rete di sicurezza anti-GUI: sposta eventuale finestra solver fuori schermo
+    try:
+        check(St7SetSolverWindowPos(-32000, -32000, 1, 1))
+    except Exception:
+        pass
 
     check(St7RunSolver(uID, solver_id, run_mode, 1))
 
     # 5) salva e chiudi
     check(St7SaveFile(uID))
     check(St7CloseFile(uID))
+
+    # NEW: ripristina posizione finestra solver per run futuri
+    try:
+        check(St7ClearSolverWindowPos())
+    except Exception:
+        pass
 
     return {
         "model_path": p,
