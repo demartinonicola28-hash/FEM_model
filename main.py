@@ -13,7 +13,7 @@
 
 import sys
 import os
-import St7API as st7
+import ctypes as ct
 
 # Ensure the parent directory of 'analysis' is in the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'model')))
@@ -23,6 +23,8 @@ DLL_DIR = r"C:\Program Files\Straus7 R31\Bin64"
 if not os.path.isdir(DLL_DIR):
     raise RuntimeError(f"Percorso DLL non trovato: {DLL_DIR}")
 os.add_dll_directory(DLL_DIR)
+import St7API as st7
+
 
 from pathlib import Path
 
@@ -34,12 +36,13 @@ from model.freedom_case import apply_freedom_case
 from model.load_cases import apply_load_cases
 
 from analysis.lsa_combine_and_solve import lsa_combine_and_solve
-from analysis.modal_analysis import run_modal_analysis
+from analysis.modal_analysis import run_modal_analysis, get_modal_freqs_periods
 from spettro_ntc18.spettro_ntc18 import run_spettro_ntc18_gui
 from analysis.import_spettro import run as import_spettro_run
 from analysis.spectral_analysis import run as spectral_run
 from analysis.beam_result import max_check_value, list_result_cases
 from analysis.import_accelerogram import run
+from analysis.ltd_analysis import run_LTD, ck
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -162,7 +165,18 @@ if __name__ == "__main__":
         log_path=log
     )
 
-    print("Analisi modale completata e risultati salvati in:", res)
+    print("Analisi modale completata")
+
+    #QUESTO è DA FINIRE PER STAMPARE FREQ E PERIODI
+
+    # Stampa: mode, frequenza [Hz], periodo [s]
+    ck(st7.St7Init(), "Init API")               # inizializza per leggere l’NFA
+    try:
+        for k, f, T in get_modal_freqs_periods(1, res):
+            print(f"Mode {k:>2}  freq = {f:.6g} Hz   period = {T:.6g} s")
+    finally:
+        st7.St7Release()
+
 
     # === Step 8: create and import spettro nel Table ====================================
 
@@ -221,15 +235,29 @@ if __name__ == "__main__":
     model = model_dir / "Telaio_2D.st7"  # <-- metti il nome reale
     assert model.is_file(), f"Modello non trovato: {model}"
     ids = run(model_path=str(model), acc_dir=str(acc_dir), names=("acc1","acc2","acc3"), units="g")
-    print(ids)
-
+    print("Accelerogrammi importati, Table IDs:", ids, "\n") 
     # in alternativa, prendi il primo .st7 nella cartella:
     # candidates = sorted(model_dir.glob("*.st7"))
     # assert candidates, f"Nessun .st7 in {model_dir}"
     # ids = run(model_path=str(candidates[0]), acc_dir=str(acc_dir))
 
-    # === Step 12: setup e solve ===============================================
-    #run_LTD(uid, acc_table_name="acc1")    # SIAMO ARRIVATI QUI
+    # === Step 12: Linear Transient Dynamic (Full System) =======================
+    print("Avvio Linear Transient Dynamic...")                                   # Log
+    uID = 1                                                               # ID modello
+
+    ck(st7.St7Init(), "Init API")                                         # Inizializza API
+    try:
+        ck(st7.St7OpenFile(uID, str(model).encode("utf-8"), b""), "Open") # Apre il .st7 creato
+        # Usa l’ID tabella importato allo Step 11 se disponibile
+        acc_arg = int(ids[0]) if ('ids' in globals() and ids) else "acc1" # ID oppure nome
+        run_LTD(uID, acc_table_name=acc_arg)                               # Lancia LTD
+        print("LTD completata.")                                          # Log
+    finally:
+        try:
+            ck(st7.St7CloseFile(uID), "Close")                            # Chiudi
+        finally:
+            st7.St7Release()                                              # Rilascia
+
 
     # === Step 13: apertura automatica del file Straus7 ==========================
     print("\nApertura automatica del file Straus7...")

@@ -1,57 +1,96 @@
 # ltd_analysis.py
-# Setup: base acceleration con fattore (1,0,0), tabella Acceleration vs Time "acc1"
-# Time stepping: 250 passi, dt=0.1, salva ogni 50
-# Mass Matrix: Beam -> consistent (no lumped)
-# Avvio solver: Linear Transient Dynamic
 
-import ctypes as ct
-import os
-import sys
+# Import standard library
+import ctypes as ct  # Tipi C (long, double, array)
+import sys           # Per argv se lanciato diretto
 
-# Usa il wrapper ufficiale: contiene funzioni e costanti (beAcceleration, ttAccVsTime, tuSec, spLumpedMassBeam, stLinearTransientDynamic, ecc.)
-# Vedi manuale "Using the Straus7 API with Python".
-import St7API as st7  # assicurati che St7API.py sia nel PYTHONPATH
+# Import API Straus7
+import St7API as st7  # Wrapper ufficiale
 
-def ck(err, msg):
-    if err != 0:
-        raise RuntimeError(f"{msg} (St7 err={err})")
+# ---- Utility ---------------------------------------------------------------
 
-def get_table_id_by_name(uID, table_type, name: str) -> int:
-    """Ritorna l'ID della tabella con nome 'name' del tipo 'table_type'.
-       Se non esiste, solleva errore."""
-    # API: St7GetTableID(uID, TableType, Name, TableID)
-    TableID = ct.c_long(0)
-    ck(st7.St7GetTableID(uID, table_type, name.encode("utf-8"), ct.byref(TableID)),
-       f"St7GetTableID({name})")
-    return TableID.value
+def ck(err, msg):                                   # Check errori API
+    if err != 0:                                    # 0 = OK
+        raise RuntimeError(f"{msg} (St7 err={err})")# Eccezione con codice
 
-def run_LTD(uID: int, acc_table_name: str = "acc1"):
-    # 1) Base excitation = Acceleration
-    ck(st7.St7SetTransientBaseExcitation(uID, st7.beAcceleration), "Set base excitation")
+def _resolve_acc_table_id(uID, acc_table):          # Accetta ID int o nome str
+    if isinstance(acc_table, int):                  # Se è già un ID
+        return int(acc_table)                       # Ritorna l’ID
+    TableID = ct.c_long(0)                          # Alloca out param
+    name_b = str(acc_table).encode("utf-8")         # Nome in bytes
+    # Nota: il wrapper vuole un int puro per TableType
+    ck(st7.St7GetTableID(uID, int(st7.ttAccVsTime), name_b, ct.byref(TableID)),
+       f"St7GetTableID('{acc_table}')")             # Lookup per nome
+    return TableID.value                            # ID tabella
 
-    # 2) Base vector factor (X,Y,Z) = (1,0,0)
-    vec3 = (ct.c_double * 3)(1.0, 0.0, 0.0)
-    ck(st7.St7SetTransientBaseVector(uID, vec3), "Set base vector")
+# ---- Configurazione e run LTD ---------------------------------------------
 
-    # 3) Associa tabella Acceleration vs Time = acc1
-    acc_table_id = get_table_id_by_name(uID, st7.ttAccVsTime, acc_table_name)
-    tab_ids = (ct.c_long * 3)(acc_table_id, 0, 0)  # X usa acc1, Y/Z none
-    ck(st7.St7SetTransientBaseTables(uID, st7.beAcceleration, tab_ids), "Set base tables")
+def run_LTD(uID, acc_table_name="acc1"):            # Funzione principale LTD
+    # 0) Solver DLL (integrazione in-process)
+    try:                                            # Alcuni wrapper non la espongono
+        ck(st7.St7SetUseSolverDLL(st7.btTrue), "Use solver DLL")  # Preferisci DLL
+    except Exception:                                # Se non disponibile
+        pass                                         # Continua
 
-    # 4) Time stepping: unità, passi, dt, save every
-    ck(st7.St7SetTimeStepUnit(uID, st7.tuSec), "Set time unit to seconds")
-    ck(st7.St7SetTimeStepData(uID, 1, 250, 50, ct.c_double(0.1)), "Set time step data")
+    # 1) Metodo tempo: Newmark
+    try:                                            # API dedicata
+        ck(st7.St7SetLTAMethod(uID, st7.ltNewmark), "Set Newmark")  # Newmark
+    except Exception:                                # Se assente
+        pass                                         # Usa default
 
-    # 5) Parameters → Elements → Mass Matrix → Beam mass → consistent
-    # Imposta opzione solver: disattiva massa "lumped" per i beam
-    ck(st7.St7SetSolverDefaultsLogical(uID, st7.spLumpedMassBeam, st7.btFalse), "Set consistent beam mass")
+    # 2) Solution type: Full System
+    set_full_ok = False                              # Flag locale
+    try:                                            # API specifica
+        ck(st7.St7SetLTASolutionType(uID, st7.stFullSystem), "Set FullSystem")  # FullSystem
+        set_full_ok = True                           # Impostato
+    except Exception:                                # Fallback
+        try:
+            ck(st7.St7SetSolverDefaultsLogical(uID, st7.spFullSystemTransient, st7.btTrue),
+               "Force FullSystem via defaults")      # Forza FullSystem
+            set_full_ok = True                       # Impostato
+        except Exception:
+            pass                                     # Continua
+    if not set_full_ok:                              # Se non impostato
+        print("ATTENZIONE: Full System non impostato esplicitamente.")  # Avviso
 
-    # 6) Avvio solver: Linear Transient Dynamic
-    ck(st7.St7RunSolver(uID, st7.stLinearTransientDynamic), "Run Linear Transient Dynamic")
+    # 3) Condizioni iniziali: none
+    try:                                            # Opzionale
+        ck(st7.St7SetTransientInitialConditionsType(uID, st7.icNone), "Set IC none")  # icNone
+    except Exception:
+        pass
 
-if __name__ == "__main__":
-    # uID del modello già aperto oppure apri un file e ottieni uID.
-    # Qui assumiamo che il modello sia già aperto e che uID=1 sia valido nel tuo processo.
-    uid = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-    run_LTD(uid, acc_table_name="acc1")
-    print("LTD completata")
+    # 4) Base excitation = Acceleration
+    ck(st7.St7SetTransientBaseExcitation(uID, st7.beAcceleration), "Base = acceleration")  # beAcceleration
+
+    # 5) Base vector (1,0,0)
+    base_vec = (ct.c_double * 3)(1.0, 0.0, 0.0)     # Array double[3]
+    ck(st7.St7SetTransientBaseVector(uID, base_vec), "Base vector (1,0,0)")  # Direzione X
+
+    # 6) Tabella Acceleration vs Time su X (ID o nome)
+    acc_id = _resolve_acc_table_id(uID, acc_table_name)               # Risolvi ID
+    tabs = (ct.c_long * 3)(acc_id, 0, 0)                              # X=tabella, Y/Z=none
+    ck(st7.St7SetTransientBaseTables(uID, st7.beAcceleration, tabs),  # Associa tabelle
+       "Bind base tables")
+
+    # 7) Time stepping: uID, Row, NumSteps, SaveEvery, TimeStep
+    ck(st7.St7SetTimeStepUnit(uID, st7.tuSec), "Time unit = sec")     # tuSec
+    ck(st7.St7SetTimeStepData(uID, 1, 250, 1, ct.c_double(0.1)),
+       "Time step data")
+
+    # 8) Massa beam consistente
+    try:                                                               # Opzione solver
+        ck(st7.St7SetSolverDefaultsLogical(uID, st7.spLumpedMassBeam, st7.btFalse),
+           "Beam mass consistent")                                     # No lumped
+    except Exception:
+        pass
+
+    # 9) Avvio solver LTD (firma a 4 argomenti)
+    ck(st7.St7RunSolver(uID, st7.stLinearTransientDynamic, st7.smBackgroundRun, st7.btTrue),
+       "Run LTD")                                                      # Esegui e attendi
+
+# ---- Esecuzione diretta opzionale -----------------------------------------
+
+if __name__ == "__main__":                          # Se lanci questo file
+    uid = int(sys.argv[1]) if len(sys.argv) > 1 else 1  # uID da argv o 1
+    run_LTD(uid, acc_table_name="acc1")             # Esegui LTD
+    print("LTD completata")                         # Log

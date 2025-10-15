@@ -1,0 +1,144 @@
+*SOLUTION COMMENCED AT 17:20 ON 15/10/2025 
+  
+ Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
+  
+ LICENCED TO                 : PINECA UNIPD 50 POSTI DI LAVORO 
+  
+ ANALYSIS TYPE               : LINEAR TRANSIENT DYNAMIC 
+  
+ COMPUTER NAME               : PC-104 
+ USER LOGON NAME             : demnic15950 
+ CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
+ USABLE PHYSICAL MEMORY      : 15.8 GB 
+ USABLE VIRTUAL MEMORY       : 18.2 GB 
+  
+ MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\Telaio_2D.st7" 
+ RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\telaio_2D.LTA" 
+ SCRATCH PATH                : "C:\Users\demnic15950\Downloads\FEM_model\" 
+  
+ TOTALS 
+ Nodes                       : 14 
+ Beams                       : 14 
+ Plates                      : 0 
+ Bricks                      : 0 
+ Links                       : 0 
+  
+ SOLVER UNITS 
+ Length                      : m 
+ Mass                        : kg 
+ Force                       : N 
+ Stress                      : Pa 
+ Time                        : s 
+  
+ BASE EXCITATION             : Acceleration 
+ Time Table X                : "acc1" 
+ Time Table Y                : <None> 
+ Time Table Z                : <None> 
+  
+ INITIAL CONDITIONS 
+ Velocity                    : <None> 
+ Acceleration                : <None> 
+  
+ RAYLEIGH DAMPING INPUT DATA  
+ Frequency 1                 : 1.000000E+00 Hz 
+ Damping Ratio 1             : 1.000000E+00 % 
+ Frequency 2                 : 1.000000E+01 Hz 
+ Damping Ratio 2             : 1.000000E+00 % 
+  
+ DAMPING COEFFICIENTS 
+ Alpha                       : 1.142397E-01   
+ Beta                        : 2.893726E-04   
+  
+ SOLUTION METHOD             : Direct integration - Newmark Method (Beta = 0.500000; Alpha = 0.250000) 
+  
+ MASS MATRIX OPTION 
+ Beam Elements               : Consistent 
+ Global Matrix               : Full 
+ Global Mass X               : Included 
+ Global Mass Y               : Included 
+ Global Mass Z               : Included 
+ Global Rotational Mass      : Included 
+  
+ STORAGE SCHEME              : Sparse  
+ SORTING METHOD              : AMD  
+ SOLUTION TYPE               : Direct  
+  
+ NUMBER OF EQUATIONS         : 36 
+ MATRIX FILL-IN              : 25.8% 
+ [K] MATRIX SIZE             : 1.9 KB 
+ [M] MATRIX SIZE             : 1.4 KB 
+ [C] MATRIX SIZE             : 1.4 KB 
+ OPTIMUM RAM NEEDED          : 128.0 KB 
+ FREE SCRATCH SPACE          : 170.9 GB 
+  
+*WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
+  
+ INCLUDED CASES              :  Case   Status   Case Name 
+                             :     1  Included  "1:G1" 
+                             :     2  Included  "2:G2" 
+                             :     3  Included  "3:Q" 
+                             :     4  Included  "1:2D Beam XY" 
+  
+ SUMMATION OF UNFACTORED APPLIED LOADS  
+          Case        FX           FY           FZ           MX           MY           MZ        Case Name 
+ Beams       1   +0.00000E+00 -3.07775E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 -1.77636E-15   "1:G1" 
+             2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +3.63798E-12   "2:G2" 
+             3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-13   "3:Q" 
+ Total       1   +0.00000E+00 -3.07775E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 -1.77636E-15   "1:G1" 
+             2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +3.63798E-12   "2:G2" 
+             3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-13   "3:Q" 
+ Vector      1   +0.00000E+00 -2.75134E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +5.32907E-15   "1:G1" 
+             2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +3.63798E-12   "2:G2" 
+             3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "3:Q" 
+  
+ SUMMATION OF MOMENTS OF APPLIED LOADS ABOUT THE ORIGIN [Vector]  
+          Case        MXo          MYo          MZo       Case Name 
+             1   +0.00000E+00 +0.00000E+00 -6.87836E+03   "1:G1" 
+             2   +0.00000E+00 +0.00000E+00 -4.37500E+05   "2:G2" 
+             3   +0.00000E+00 +0.00000E+00 -2.12500E+05   "3:Q" 
+  
+ START TIME ROW 1            : Num Steps = 250; Time Step = 1.000000E-01; Save Every 1 
+  
+ Forming effective stiffness... 
+  
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
+  
+ MAXIMUM PIVOT               : 5.124632E+08 (Node 13 DY) 
+ MINIMUM PIVOT               : 1.415285E+06 (Node 7 RZ) 
+  
+ SUMMARY: Maximum nodal displacement 
+ Direction     Magnitude        Node     Time 
+    DX       2.327333E-01          5   1.940000E+01  
+    DY       2.623982E-01          2   5.000000E-01  
+  
+ SUMMARY: Maximum nodal velocity 
+ Direction     Magnitude        Node     Time 
+    DX       4.453831E-01         14   1.710000E+01  
+    DY       1.310931E+00          6   2.400000E+00  
+  
+ SUMMARY: Maximum nodal acceleration 
+ Direction     Magnitude        Node     Time 
+    DX       5.047532E+00         14   7.300000E+00  
+    DY       1.127515E+01          6   2.600000E+00  
+  
+ SUMMARY: Maximum nodal reaction 
+ Direction     Magnitude        Node     Time 
+    DX       2.356475E+04         12   8.100000E+00  
+    DY       2.182054E+05         12   4.000000E-01  
+  
+ SUMMARY: Maximum beam force 
+ Component     Magnitude     Element     Time 
+  Shear 2    1.016075E+05          3   4.000000E-01  
+  Axial      2.179893E+05         11   3.000000E-01  
+  Moment 2   1.036812E+05          3   3.000000E-01  
+  
+ TOTAL CPU TIME              : 0.375 Seconds 
+  
+ 
+*SUMMARY OF MESSAGES
+*Number of Notes    : 0
+*Number of Warnings : 1
+*Number of Errors   : 0
+ 
+*SOLUTION COMPLETED AT 17:20 ON 15/10/2025 
+*SOLUTION TIME: 2 Seconds 
