@@ -43,6 +43,8 @@ from analysis.spectral_analysis import run as spectral_run
 from analysis.beam_result import max_check_value, list_result_cases
 from analysis.import_accelerogram import run
 from analysis.ltd_analysis import run_LTD, ck
+from analysis.node_disp_time import find_node, export_ltd_node_displacements
+
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -277,6 +279,53 @@ if __name__ == "__main__":
         finally:
             st7.St7Release()                                              # Rilascia
 
-    # === Step 13: apertura automatica del file Straus7 ==========================
+    # === Step 13: trova nodo trave-pilastro destro e 3 nodi offset ============
+    print("\nRicerca nodi trave-pilastro destro...")
+    try:
+        # individua il nodo con X≈span e Y≈h_story e i tre nodi offset vicini
+        nodes_info = find_node(
+            model_path=str(model),
+            span=gui_params["span"],
+            h_story=gui_params["h_story"],
+            offset=gui_params["offset"],
+        )
+        ref_id = nodes_info["ref_node"]["id"]
+        neigh_ids = [n["id"] for n in nodes_info["neighbors"]]
+        print(f"Nodo trave-pilastro destro: {ref_id}")
+        print("Nodi offset vicini:", neigh_ids, "\n")
+    except Exception as e:
+        print("Errore ricerca nodi:", e)
+        nodes_info = None
+
+    # === Step 14: esporta spostamenti nel tempo (solo nodi offset) ===========
+    try:
+        if not nodes_info:
+            raise RuntimeError("Nodi non trovati, impossibile esportare spostamenti.")
+
+        # usa solo i nodi offset, escludendo il nodo trave-pilastro
+        node_ids = [n["id"] for n in nodes_info["neighbors"]]
+
+        # cartella di output: FEM_model/disp_time
+        out_dir = os.path.join(os.path.dirname(str(model)), "..", "disp_time")
+
+        # esporta DX/DY/DZ nel tempo per i nodi offset dai risultati LTD (.LTA)
+        paths_by_node = export_ltd_node_displacements(
+            model_path=str(model),
+            node_ids=node_ids,
+            out_dir=out_dir
+        )
+
+        print("\nSpostamenti nel tempo esportati (solo nodi offset):")
+        for nid, dirs in paths_by_node.items():
+            print(f" Nodo {nid}:")
+            for comp, fp in dirs.items():
+                print(f"   {comp}: {fp}")
+    except Exception as e:
+        print("Errore esportazione spostamenti:", e)
+
+    #PRIMA DI ESPORTARE I FILE TXT DEVE CANCELLARE QUELLI GIA' PRESENTI
+
+
+    # === Step 15: apertura automatica del file Straus7 ==========================
     print("\nApertura automatica del file Straus7...")
     os.startfile(model)
