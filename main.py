@@ -37,7 +37,7 @@ from model.load_cases import apply_load_cases
 
 from analysis.lsa_combine_and_solve import lsa_combine_and_solve
 from analysis.modal_analysis import run_modal_analysis, get_modal_freqs_periods
-from spettroNTC18.spettro_ntc18 import run_spettro_ntc18_gui
+from spettro_ntc18.spettro_ntc18 import run_spettro_ntc18_gui
 from analysis.import_spettro import run as import_spettro_run
 from analysis.spectral_analysis import run as spectral_run
 from analysis.beam_result import max_check_value, list_result_cases
