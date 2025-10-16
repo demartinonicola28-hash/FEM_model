@@ -167,16 +167,35 @@ if __name__ == "__main__":
 
     print("Analisi modale completata")
 
-    #QUESTO è DA FINIRE PER STAMPARE FREQ E PERIODI
-
-    # Stampa: mode, frequenza [Hz], periodo [s]
-    ck(st7.St7Init(), "Init API")               # inizializza per leggere l’NFA
+    # Frequenze modali + Rayleigh (unica sessione API)
+    ck(st7.St7Init(), "Init API")
     try:
-        for k, f, T in get_modal_freqs_periods(1, res):
-            print(f"Mode {k:>2}  freq = {f:.6g} Hz   period = {T:.6g} s")
+        ck(st7.St7OpenFile(1, model.encode("utf-8"), b""), "Open model")
+        try:
+            # leggi e stampa modi
+            modes = get_modal_freqs_periods(1, res)
+            for k, f, T in modes:
+                print(f"Mode {k:>2}   freq {f:.6g} Hz   period {k:>2} {T:.6g} s")
+
+            # Rayleigh F1=min, F2=max, display idem, R1=R2=5%
+            freqs = [f for _, f, _ in modes]
+            fmin, fmax = min(freqs), max(freqs)
+
+            arr = (ct.c_double * 6)()
+            arr[st7.ipRayleighF1]        = fmin
+            arr[st7.ipRayleighF2]        = fmax
+            arr[st7.ipRayleighR1]        = 0.05
+            arr[st7.ipRayleighR2]        = 0.05
+            arr[st7.ipRayleighDisplayF1] = fmin
+            arr[st7.ipRayleighDisplayF2] = fmax
+
+            ck(st7.St7SetDampingType(1, st7.dtRayleighDamping), "Set damping type")
+            ck(st7.St7SetRayleighFactors(1, st7.rmSetFrequencies, arr), "Set Rayleigh factors")
+            ck(st7.St7SaveFile(1), "Save model with Rayleigh")
+        finally:
+            ck(st7.St7CloseFile(1), "Close model")
     finally:
         st7.St7Release()
-
 
     # === Step 8: create and import spettro nel Table ====================================
 
@@ -188,7 +207,7 @@ if __name__ == "__main__":
         # esegui GUI e salva in questa cartella
         res = run_spettro_ntc18_gui(output_dir=path_spettro, show_plot=True)
 
-        print("Spettro NTC18 generato in:", path_spettro)
+        print("\nSpettro NTC18 generato in:", path_spettro)
     except Exception as e:
         print("Errore generazione spettro NTC18:", e)
         sys.exit(1)
@@ -257,7 +276,6 @@ if __name__ == "__main__":
             ck(st7.St7CloseFile(uID), "Close")                            # Chiudi
         finally:
             st7.St7Release()                                              # Rilascia
-
 
     # === Step 13: apertura automatica del file Straus7 ==========================
     print("\nApertura automatica del file Straus7...")

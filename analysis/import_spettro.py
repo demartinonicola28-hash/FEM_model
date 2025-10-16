@@ -170,3 +170,4 @@ if __name__ == "__main__":
     # Esempio:
     # print(run(r"C:\Users\...\telaio_2D.st7"))
     pass
+    

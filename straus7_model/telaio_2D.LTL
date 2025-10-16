@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 17:20 ON 15/10/2025 
+*SOLUTION COMMENCED AT 15:23 ON 16/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -6,7 +6,7 @@
   
  ANALYSIS TYPE               : LINEAR TRANSIENT DYNAMIC 
   
- COMPUTER NAME               : PC-104 
+ COMPUTER NAME               : PC-030 
  USER LOGON NAME             : demnic15950 
  CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
  USABLE PHYSICAL MEMORY      : 15.8 GB 
@@ -40,14 +40,14 @@
  Acceleration                : <None> 
   
  RAYLEIGH DAMPING INPUT DATA  
- Frequency 1                 : 1.000000E+00 Hz 
- Damping Ratio 1             : 1.000000E+00 % 
- Frequency 2                 : 1.000000E+01 Hz 
- Damping Ratio 2             : 1.000000E+00 % 
+ Frequency 1                 : 3.254851E-01 Hz 
+ Damping Ratio 1             : 5.000000E+00 % 
+ Frequency 2                 : 1.060661E+00 Hz 
+ Damping Ratio 2             : 5.000000E+00 % 
   
  DAMPING COEFFICIENTS 
- Alpha                       : 1.142397E-01   
- Beta                        : 2.893726E-04   
+ Alpha                       : 1.564871E-01   
+ Beta                        : 1.148183E-02   
   
  SOLUTION METHOD             : Direct integration - Newmark Method (Beta = 0.500000; Alpha = 0.250000) 
   
@@ -69,7 +69,7 @@
  [M] MATRIX SIZE             : 1.4 KB 
  [C] MATRIX SIZE             : 1.4 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 170.9 GB 
+ FREE SCRATCH SPACE          : 162.2 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
@@ -103,36 +103,36 @@
   
  Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
   
- MAXIMUM PIVOT               : 5.124632E+08 (Node 13 DY) 
- MINIMUM PIVOT               : 1.415285E+06 (Node 7 RZ) 
+ MAXIMUM PIVOT               : 6.265159E+08 (Node 13 DY) 
+ MINIMUM PIVOT               : 1.670059E+06 (Node 7 RZ) 
   
  SUMMARY: Maximum nodal displacement 
  Direction     Magnitude        Node     Time 
-    DX       2.327333E-01          5   1.940000E+01  
-    DY       2.623982E-01          2   5.000000E-01  
+    DX       1.970260E-01          5   1.940000E+01  
+    DY       2.480538E-01          2   5.000000E-01  
   
  SUMMARY: Maximum nodal velocity 
  Direction     Magnitude        Node     Time 
-    DX       4.453831E-01         14   1.710000E+01  
-    DY       1.310931E+00          6   2.400000E+00  
+    DX       4.049753E-01          6   1.710000E+01  
+    DY       9.205169E-01          2   2.000000E-01  
   
  SUMMARY: Maximum nodal acceleration 
  Direction     Magnitude        Node     Time 
-    DX       5.047532E+00         14   7.300000E+00  
-    DY       1.127515E+01          6   2.600000E+00  
+    DX       1.892408E+00         11   1.800000E+00  
+    DY       8.026093E+00          2   1.000000E-01  
   
  SUMMARY: Maximum nodal reaction 
  Direction     Magnitude        Node     Time 
-    DX       2.356475E+04         12   8.100000E+00  
-    DY       2.182054E+05         12   4.000000E-01  
+    DX       1.914351E+04         12   5.000000E-01  
+    DY       2.065139E+05         12   4.000000E-01  
   
  SUMMARY: Maximum beam force 
  Component     Magnitude     Element     Time 
-  Shear 2    1.016075E+05          3   4.000000E-01  
-  Axial      2.179893E+05         11   3.000000E-01  
-  Moment 2   1.036812E+05          3   3.000000E-01  
+  Shear 2    9.631925E+04          3   4.000000E-01  
+  Axial      2.032344E+05         11   3.000000E-01  
+  Moment 2   9.799973E+04          3   4.000000E-01  
   
- TOTAL CPU TIME              : 0.375 Seconds 
+ TOTAL CPU TIME              : 0.281 Seconds 
   
  
 *SUMMARY OF MESSAGES
@@ -140,5 +140,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 17:20 ON 15/10/2025 
+*SOLUTION COMPLETED AT 15:23 ON 16/10/2025 
 *SOLUTION TIME: 2 Seconds 
