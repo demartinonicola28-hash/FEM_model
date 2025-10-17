@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 18:59 ON 16/10/2025 
+*SOLUTION COMMENCED AT 12:22 ON 17/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -12,9 +12,9 @@
  USABLE PHYSICAL MEMORY      : 15.8 GB 
  USABLE VIRTUAL MEMORY       : 18.2 GB 
   
- MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\telaio_2D.st7" 
- RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\telaio_2D.NFA" 
- SCRATCH PATH                : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\_scratch\" 
+ MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\telaio_2D.st7" 
+ RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\telaio_2D.NFA" 
+ SCRATCH PATH                : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\_scratch\" 
   
  TOTALS 
  Nodes                       : 14 
@@ -51,7 +51,7 @@
  [M] MATRIX SIZE             : < 1 KB 
  MODE MATRIX SIZE            : 3.9 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 162.0 GB 
+ FREE SCRATCH SPACE          : 157.3 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
@@ -143,5 +143,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 18:59 ON 16/10/2025 
+*SOLUTION COMPLETED AT 12:22 ON 17/10/2025 
 *SOLUTION TIME: 0 Seconds 

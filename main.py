@@ -12,7 +12,7 @@
 # - esegue l’analisi spettrale (solver SR, combinazione .SRA, solver statico)
 
 import sys
-import os
+import os, glob
 import ctypes as ct
 
 # Ensure the parent directory of 'analysis' is in the Python path
@@ -28,12 +28,12 @@ import St7API as st7
 
 from pathlib import Path
 
-from model.gui import run_gui
-from model.create_file import create_file
-from model.build_geometry import build_geometry
-from model.apply_properties import apply_properties
-from model.freedom_case import apply_freedom_case
-from model.load_cases import apply_load_cases
+from global_model.gui import run_gui
+from global_model.create_file import create_file
+from global_model.build_geometry import build_geometry
+from global_model.apply_properties import apply_properties
+from global_model.freedom_case import apply_freedom_case
+from global_model.load_cases import apply_load_cases
 
 from analysis.lsa_combine_and_solve import lsa_combine_and_solve
 from analysis.modal_analysis import run_modal_analysis, get_modal_freqs_periods
@@ -44,6 +44,9 @@ from analysis.beam_result import max_check_value, list_result_cases
 from analysis.import_accelerogram import run
 from analysis.ltd_analysis import run_LTD, ck
 from analysis.node_disp_time import find_node, export_ltd_node_displacements
+
+from local_model.create_file import create_st7_with_nodes
+
 
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
@@ -58,7 +61,7 @@ if __name__ == "__main__":
 
     # === Step 1: crea file ====================================================
     # crea un nuovo file .st7 e restituisce il path
-    path = create_file("straus7_model/telaio_2D.st7")
+    path = create_file("straus7_model/global/telaio_2D.st7")
     print("File generato:", path)
 
     # === Step 2: geometria ====================================================
@@ -253,14 +256,10 @@ if __name__ == "__main__":
     acc_dir   = base / "accelerogram"
 
     # se sai il nome del file:
-    model = model_dir / "Telaio_2D.st7"  # <-- metti il nome reale
+    model = model_dir / "global/Telaio_2D.st7"  # <-- metti il nome reale
     assert model.is_file(), f"Modello non trovato: {model}"
     ids = run(model_path=str(model), acc_dir=str(acc_dir), names=("acc1","acc2","acc3"), units="g")
     print("Accelerogrammi importati, Table IDs:", ids, "\n") 
-    # in alternativa, prendi il primo .st7 nella cartella:
-    # candidates = sorted(model_dir.glob("*.st7"))
-    # assert candidates, f"Nessun .st7 in {model_dir}"
-    # ids = run(model_path=str(candidates[0]), acc_dir=str(acc_dir))
 
     # === Step 12: Linear Transient Dynamic (Full System) =======================
     print("Avvio Linear Transient Dynamic...")                                   # Log
@@ -305,8 +304,18 @@ if __name__ == "__main__":
         # usa solo i nodi offset, escludendo il nodo trave-pilastro
         node_ids = [n["id"] for n in nodes_info["neighbors"]]
 
-        # cartella di output: FEM_model/disp_time
+        # cartella di output: disp_time
         out_dir = os.path.join(os.path.dirname(str(model)), "..", "disp_time")
+
+        # elimina eventuali file .txt già presenti nella cartella
+        old_txt = glob.glob(os.path.join(out_dir, "*.txt"))
+        if old_txt:
+            print(f"\nPulizia cartella: {out_dir}")
+            for f in old_txt:
+                try:
+                    os.remove(f)
+                except Exception as e:
+                    print(f"  Errore eliminazione {f}: {e}")
 
         # esporta DX/DY/DZ nel tempo per i nodi offset dai risultati LTD (.LTA)
         paths_by_node = export_ltd_node_displacements(
@@ -323,9 +332,34 @@ if __name__ == "__main__":
     except Exception as e:
         print("Errore esportazione spostamenti:", e)
 
-    #PRIMA DI ESPORTARE I FILE TXT DEVE CANCELLARE QUELLI GIA' PRESENTI
-
-
     # === Step 15: apertura automatica del file Straus7 ==========================
     print("\nApertura automatica del file Straus7...")
     os.startfile(model)
+
+    # === Step 16: crea modello locale con 4 nodi + intermedi =====================
+    try:
+        # 4 nodi: centro + 3 offset
+        node_list = [nodes_info["ref_node"]] + nodes_info["neighbors"]
+
+        new_nodes = [{"id": n.get("id"), "xyz": n["xyz"]} for n in node_list]
+
+        new_model_path = os.path.join(
+            os.path.dirname(os.path.dirname(str(model))), "local","local_model.st7")    # risale da "global" a "straus7_model"
+
+        # n_intermediate = quanti nodi fra centro e ciascun periferico
+        out = create_st7_with_nodes(
+            model_path=new_model_path,
+            nodes=new_nodes,
+            keep_ids=False,       # numerazione 1..N
+            center_index=0,       # il primo è il nodo centrale
+            n_intermediate=1      # esempio: 3 nodi intermedi per raggio
+        )
+
+        print("Creati nodi base:", out["base_node_ids"])
+        print("Intermedi per branch:")
+        for i, lst in enumerate(out["intermediate_ids_by_branch"], 1):
+            print(f"  Branch {i}: {lst}")
+        print(f"Nuovo modello: {new_model_path}")
+    except Exception as e:
+        print("Errore creazione modello locale:", e)
+

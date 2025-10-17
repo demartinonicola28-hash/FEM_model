@@ -16,7 +16,7 @@ def check(rc: int):
     if rc != 0:
         raise RuntimeError(f"St7 error {rc}: {api_err_str(rc)}")
 
-def create_file(filename: str = "telaio_2d.st7"):
+def create_file(filename: str = "telaio_2D.st7"):
     """Crea un file Straus7 e imposta le unità di misura standard."""
     model_path = os.path.abspath(filename)
     os.system('taskkill /IM Straus7.exe /F >nul 2>&1')
