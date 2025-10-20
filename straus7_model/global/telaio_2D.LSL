@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 12:22 ON 17/10/2025 
+*SOLUTION COMMENCED AT 18:52 ON 20/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -6,11 +6,11 @@
   
  ANALYSIS TYPE               : LINEAR STATIC 
   
- COMPUTER NAME               : PC-030 
+ COMPUTER NAME               : PC-101 
  USER LOGON NAME             : demnic15950 
- CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
- USABLE PHYSICAL MEMORY      : 15.8 GB 
- USABLE VIRTUAL MEMORY       : 18.2 GB 
+ CPU                         : Intel(R) Core(TM) i9-14900K 
+ USABLE PHYSICAL MEMORY      : 31.7 GB 
+ USABLE VIRTUAL MEMORY       : 36.4 GB 
   
  MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\telaio_2D.st7" 
  RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\telaio_2D.LSA" 
@@ -43,7 +43,7 @@
  MATRIX FILL-IN              : 25.8% 
  [K] MATRIX SIZE             : 1.9 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 157.3 GB 
+ FREE SCRATCH SPACE          : 169.0 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
@@ -84,7 +84,7 @@
       2   +0.00000E+00 +1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 -3.00133E-11  "2:G2" 
       3   +0.00000E+00 +8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.18279E-11  "3:Q" 
   
- TOTAL CPU TIME              : 0.047 Seconds 
+ TOTAL CPU TIME              : 0.016 Seconds 
   
  
 *SUMMARY OF MESSAGES
@@ -92,5 +92,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 12:22 ON 17/10/2025 
+*SOLUTION COMPLETED AT 18:52 ON 20/10/2025 
 *SOLUTION TIME: 0 Seconds 

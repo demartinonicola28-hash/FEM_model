@@ -46,6 +46,11 @@ from analysis.ltd_analysis import run_LTD, ck
 from analysis.node_disp_time import find_node, export_ltd_node_displacements
 
 from local_model.create_file import create_st7_with_nodes
+from local_model.freedom_cases import create_unit_disp_freedom_cases
+from local_model.section_data import export_section_data
+from local_model.plate_properties import create_plate_properties, extract_I_thicknesses, ask_panel_gusset_thicknesses
+from local_model.plate_geometry import build_joint_plates, compute_starts_from_intermediates
+
 
 
 
@@ -332,11 +337,11 @@ if __name__ == "__main__":
     except Exception as e:
         print("Errore esportazione spostamenti:", e)
 
-    # === Step 15: apertura automatica del file Straus7 ==========================
+    # === Step 15: apertura automatica del file Straus7 global model ==========================
     print("\nApertura automatica del file Straus7...")
     os.startfile(model)
 
-    # === Step 16: crea modello locale con 4 nodi + intermedi =====================
+    # === Step 16: crea modello locale con nodi e beam =====================
     try:
         # 4 nodi: centro + 3 offset
         node_list = [nodes_info["ref_node"]] + nodes_info["neighbors"]
@@ -363,3 +368,124 @@ if __name__ == "__main__":
     except Exception as e:
         print("Errore creazione modello locale:", e)
 
+    # === Step 17: freedom cases =====================
+    # ids dei 3 nodi esterni dal risultato di create_st7_with_nodes (step 16)
+    outer_ids = [lst[-1] for lst in out["intermediate_ids_by_branch"]]  # ultimo di ciascun branch
+    center_id = out["base_node_ids"][0]
+
+    fc_map = create_unit_disp_freedom_cases(
+        model_path=new_model_path,
+        center_node_id=center_id,
+        outer_node_ids=outer_ids,
+        start_fcase=21   # o altro numero libero
+    )
+    print("Freedom cases creati:", fc_map)
+
+    # NON FUNZIONA RICONTROLLARE
+    
+    # === Step 18: proprietà BEAM nel modello locale (uguali al global) =====================
+    # riuso della funzione già importata: from global_model.apply_properties import apply_properties
+    props_local = apply_properties(
+        model_path=new_model_path,                      # .st7 locale appena creato
+        steel_grade="S 355",
+        fy=gui_params["fy"],
+        fu=gui_params["fu"],
+        gamma_M0=gui_params["gamma_M0"],
+        E=gui_params["E"],
+        nu=gui_params["nu"],
+        rho=gui_params["rho"],
+        section_columns=gui_params["section_columns"],  # stessa sezione colonne
+        section_beams=gui_params["section_beams"],      # stessa sezione travi
+        prop_col=1,                                     # ID proprietà colonne nel locale
+        prop_beam=2,                                    # ID proprietà travi nel locale
+        library_dir_bsl=r"C:\ProgramData\Straus7 R31\Data"
+    )
+    print("Proprietà BEAM create nel modello locale:", props_local)
+
+    # === Step 18: export section data ==========================
+    sec_out = export_section_data(model_path=path, only_props=[1,2])  # colonne e travi
+    sec = sec_out["data"]                                             # <-- riuso sotto
+    print("Section data:", sec_out["csv"], "|", sec_out["json"])
+
+    # === Step 19: plate_properties + GUI ========================================
+    # quote sezioni dal global (1=colonna, 2=trave)
+    sec = export_section_data(model_path=path, only_props=[1,2])["data"]
+
+    beam_dims = {
+        "D":  sec[2].get("D",  sec[2].get("D3")),
+        "B1": sec[2].get("B1", sec[2].get("D1", sec[2].get("B"))),
+        "B2": sec[2].get("B2", sec[2].get("D2", sec[2].get("B"))),
+        "tw":  sec[2].get("tw",  sec[2].get("T1")),
+        "tf1": sec[2].get("tf1", sec[2].get("T2", sec[2].get("tf"))),
+        "tf2": sec[2].get("tf2", sec[2].get("T3", sec[2].get("tf"))),
+    }
+    col_dims = {
+        "D":  sec[1].get("D",  sec[1].get("D3")),
+        "B1": sec[1].get("B1", sec[1].get("D1", sec[1].get("B"))),
+        "B2": sec[1].get("B2", sec[1].get("D2", sec[1].get("B"))),
+        "tw":  sec[1].get("tw",  sec[1].get("T1")),
+        "tf1": sec[1].get("tf1", sec[1].get("T2", sec[1].get("tf"))),
+        "tf2": sec[1].get("tf2", sec[1].get("T3", sec[1].get("tf"))),
+    }
+
+    # GUI: mostra quote e chiede spessori extra (pannello modale, fazzoletti)
+    extra = ask_panel_gusset_thicknesses(beam_dims, col_dims)
+
+    # spessori base per creare le plate properties
+    beam_thk = {"tw": beam_dims["tw"], "tf1": beam_dims["tf1"], "tf2": beam_dims["tf2"]}
+    col_thk  = {"tw": col_dims["tw"],  "tf1": col_dims["tf1"],  "tf2": col_dims["tf2"]}
+
+    # crea/aggiorna proprietà plate (inclusi eventuali extra)
+    props_map = create_plate_properties(
+        model_path=new_model_path,
+        beam_thk=beam_thk,
+        col_thk=col_thk,
+        E=gui_params["E"], nu=gui_params["nu"], rho=gui_params["rho"],
+        extra=extra
+    )
+    print("Plate properties:", props_map)
+
+    #SISTEMARE FINESTRA GUI NOMI E ALTRO PERO' FUNZIONA
+
+    # === Step 20: geometria plate delle sezioni ==========================
+    # 1) quote sezioni dal global (1=colonna, 2=trave)
+    beam_dims = {
+        "D":  sec[2].get("D",  sec[2].get("D3")),
+        "B1": sec[2].get("B1", sec[2].get("D1", sec[2].get("B"))),
+        "B2": sec[2].get("B2", sec[2].get("D2", sec[2].get("B"))),
+        "tw":  sec[2].get("tw",  sec[2].get("T1")),
+        "tf1": sec[2].get("tf1", sec[2].get("T2", sec[2].get("tf"))),
+        "tf2": sec[2].get("tf2", sec[2].get("T3", sec[2].get("tf"))),
+    }
+    col_dims = {
+        "D":  sec[1].get("D",  sec[1].get("D3")),
+        "B1": sec[1].get("B1", sec[1].get("D1", sec[1].get("B"))),
+        "B2": sec[1].get("B2", sec[1].get("D2", sec[1].get("B"))),
+        "tw":  sec[1].get("tw",  sec[1].get("T1")),
+        "tf1": sec[1].get("tf1", sec[1].get("T2", sec[1].get("tf"))),
+        "tf2": sec[1].get("tf2", sec[1].get("T3", sec[1].get("tf"))),
+    }
+
+    # punti di partenza = 3 nodi intermedi del modello locale
+    starts = compute_starts_from_intermediates(new_model_path, out)
+
+    # 3) costruisci la geometria a piani medi sulle tre linee verdi
+    build_joint_plates(
+        model_path=new_model_path,
+        nodes_info=nodes_info,
+        beam_dims=beam_dims,
+        col_dims=col_dims,
+        prop_names={
+            "beam": {"tw":"tw_sez.trave", "tf1":"tf1_sez.trave", "tf2":"tf2_sez.trave"},
+            "col":  {"tw":"tw_sez.colonna", "tf1":"tf1_sez.colonna", "tf2":"tf2_sez.colonna"},
+        },
+        meshing={"nx":2, "ny":2, "nz":2},
+        starts=starts,   # <-- ora parte dagli intermedi
+    )
+
+    #CREA I PLATE CON BARICENTRO SPOSTATO LEGGERMENTE RISPETTO I BEAM
+    # E LA CREAZIONE DEL NODO NON FUNZIONA
+
+    # === Step 21: apertura automatica del file Straus7 local model ==========================
+    print("\nApertura automatica del file Straus7...")
+    os.startfile(new_model_path)

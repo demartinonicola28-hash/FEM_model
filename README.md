@@ -1,1 +1,1 @@
-pip install numpy Pillow
+pip install numpy Pillow matplotlib
