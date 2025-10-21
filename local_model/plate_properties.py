@@ -78,9 +78,9 @@ def _ensure_plate_prop(uID, name, t, E, nu, rho, prefer_num=None):
 def extract_I_thicknesses(rec):
     """Ritorna dict {'tw','tf1','tf2'} da record section_data (BGL o standard)."""
     return {
-        "tw":  rec.get("tw",  rec.get("T1")),                # anima
-        "tf1": rec.get("tf1", rec.get("T2", rec.get("tf"))), # flangia inferiore
-        "tf2": rec.get("tf2", rec.get("T3", rec.get("tf"))), # flangia superiore
+        "tw":  rec.get("tw",  rec.get("T3")),                # anima
+        "tf1": rec.get("tf1", rec.get("T1", rec.get("tf"))), # flangia inferiore
+        "tf2": rec.get("tf2", rec.get("T2", rec.get("tf"))), # flangia superiore
     }
 
 # --- GUI: mostra quote e chiede spessori extra -------------------------------
@@ -208,15 +208,15 @@ def create_plate_properties(model_path, beam_thk, col_thk, E, nu, rho, extra=Non
     try:
         _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open")  # apri .st7
 
-        # Trave: tre proprietà per I
-        out["tw_sez.trave"]  = _ensure_plate_prop(uID, "tw_sez.trave",  float(beam_thk["tw"]),  E,nu,rho)
+        # Trave: tre proprietà per I        
         out["tf1_sez.trave"] = _ensure_plate_prop(uID, "tf1_sez.trave", float(beam_thk["tf1"]), E,nu,rho)
         out["tf2_sez.trave"] = _ensure_plate_prop(uID, "tf2_sez.trave", float(beam_thk["tf2"]), E,nu,rho)
+        out["tw_sez.trave"]  = _ensure_plate_prop(uID, "tw_sez.trave",  float(beam_thk["tw"]),  E,nu,rho)
 
         # Colonna: tre proprietà per I
-        out["tw_sez.colonna"]  = _ensure_plate_prop(uID, "tw_sez.colonna",  float(col_thk["tw"]),  E,nu,rho)
         out["tf1_sez.colonna"] = _ensure_plate_prop(uID, "tf1_sez.colonna", float(col_thk["tf1"]), E,nu,rho)
         out["tf2_sez.colonna"] = _ensure_plate_prop(uID, "tf2_sez.colonna", float(col_thk["tf2"]), E,nu,rho)
+        out["tw_sez.colonna"]  = _ensure_plate_prop(uID, "tw_sez.colonna",  float(col_thk["tw"]),  E,nu,rho)
 
         # Extra opzionali: pannello nodale e fazzoletti
                 # Extra: pannello nodale (sempre creato) + fazzoletti (solo se spuntati)

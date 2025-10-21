@@ -1,314 +1,257 @@
-# plate_geometry.py                                                     # nome modulo
-# Costruisce i plate di sezione I per trave e colonna su piani medi.    # descrizione
+# local_model/plate_geometry.py
+# -*- coding: utf-8 -*-
 
-import math                                                             # funzioni matematiche
-import ctypes as ct                                                     # binding C
-import St7API as st7                                                    # API Straus7
+from __future__ import annotations
+import ctypes as ct
+from typing import Dict, List, Tuple, Sequence, Optional
 
-# ---------- utilità API ------------------------------------------------------
+import St7API as st7
 
-def _ck(code, where=""):                                                # check errori API
-    if code != 0:                                                       # 0 = OK
-        buf = ct.create_string_buffer(st7.kMaxStrLen)                   # buffer testo errore
-        st7.St7GetAPIErrorString(code, buf, st7.kMaxStrLen)             # ottieni messaggio
-        raise RuntimeError(f"{where}: {buf.value.decode('utf-8','ignore')}")  # lancia eccezione
+# ----------------- util API -----------------
 
-def _get_propnum_by_name(uID, name, ptype=st7.ptPLATEPROP):             # trova numero property per nome
-    nums = (ct.c_long * st7.kMaxEntityTotals)()                         # array conteggi properties
-    last = (ct.c_long * st7.kMaxEntityTotals)()                         # array “last index” (non usato qui)
-    _ck(st7.St7GetTotalProperties(uID, nums, last), "GetTotalProperties")  # leggi totali
-    n = nums[st7.ipPlatePropTotal]                                      # numero proprietà plate
-    buf = ct.create_string_buffer(st7.kMaxStrLen)                       # buffer per nome
-    for i in range(1, n+1):                                             # itera per indice
-        pnum = ct.c_long()                                              # out: numero proprietà
-        _ck(st7.St7GetPropertyNumByIndex(uID, ptype, i, ct.byref(pnum)),
-            "GetPropertyNumByIndex(PLATE)")                             # leggi numero
-        _ck(st7.St7GetPropertyName(uID, ptype, pnum.value, buf, st7.kMaxStrLen),
-            "GetPropertyName(PLATE)")                                   # leggi nome
-        if buf.value.decode("utf-8","ignore") == name:                  # confronto esatto
-            return int(pnum.value)                                      # ritorna numero
-    raise RuntimeError(f"Property plate '{name}' non trovata")           # se non trovata
+def _ck(code: int, where: str = "") -> None:
+    if code != 0:
+        buf = ct.create_string_buffer(st7.kMaxStrLen)
+        st7.St7GetAPIErrorString(code, buf, st7.kMaxStrLen)
+        raise RuntimeError(f"{where}: {buf.value.decode('utf-8','ignore')}")
 
-# ---------- algebra minima ---------------------------------------------------
+def _get_total_nodes(uID: int) -> int:
+    tot = ct.c_long()
+    _ck(st7.St7GetTotal(uID, st7.tyNODE, ct.byref(tot)), "GetTotal tyNODE")
+    return int(tot.value)
 
-def _vsub(a,b): return (a[0]-b[0], a[1]-b[1], a[2]-b[2])                # vettore a-b
-def _vadd(a,b): return (a[0]+b[0], a[1]+b[1], a[2]+b[2])                # vettore a+b
-def _smul(k,a): return (k*a[0], k*a[1], k*a[2])                         # scalare*k
-def _dot(a,b):  return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]                    # prodotto scalare
-def _cross(a,b):return (a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0])  # vettoriale
-def _norm(a):   return math.sqrt(_dot(a,a))                              # norma
-def _unit(a):                                                            # versore
-    n = _norm(a)                                                         # calcola norma
-    if n == 0: raise ValueError("versore nullo")                         # protezione
-    return _smul(1.0/n, a)                                               # normalizza
+def _get_xyz(uID: int, node: int) -> Tuple[float, float, float]:
+    arr = (ct.c_double * 3)()
+    _ck(st7.St7GetNodeXYZ(uID, int(node), arr), f"GetNodeXYZ {node}")
+    return float(arr[0]), float(arr[1]), float(arr[2])
 
-# ---------- primitive Straus7 ------------------------------------------------
+def _new_node(uID: int, xyz: Sequence[float], node_num: int) -> int:
+    P = (ct.c_double * 3)(float(xyz[0]), float(xyz[1]), float(xyz[2]))
+    _ck(st7.St7SetNodeUCS(uID, int(node_num), 1, P), f"SetNodeUCS n{node_num}")
+    return int(node_num)
 
-def _get_xyz(uID, nid):                                                  # coordinate nodo per ID
-    buf = (ct.c_double * 3)()                                            # buffer 3 double
-    _ck(st7.St7GetNodeXYZ(uID, int(nid), buf), f"GetNodeXYZ {nid}")      # API read
-    return (buf[0], buf[1], buf[2])                                      # tuple xyz
+# ----------------- geometria sezioni -----------------
 
-def _new_node(uID, nid, xyz):                                            # crea/imposta nodo
-    arr = (ct.c_double * 3)(*xyz)                                        # array double[3]
-    _ck(st7.St7SetNodeXYZ(uID, int(nid), arr), f"SetNode {nid}")         # API write
+_AXIS_IDX = {"x": 0, "y": 1, "z": 2}
 
-def _next_ids(uID):                                                      # prossimi ID liberi
-    tot = ct.c_long()                                                    # contatore
-    _ck(st7.St7GetTotal(uID, st7.tyNODE, ct.byref(tot)),  "GetTotal NODE")   # #nodi
-    node_next = int(tot.value) + 1                                       # prossimo nodo
-    tot = ct.c_long()                                                    # contatore
-    _ck(st7.St7GetTotal(uID, st7.tyPLATE, ct.byref(tot)), "GetTotal PLATE")  # #plate
-    plate_next = int(tot.value) + 1                                      # prossimo plate
-    return node_next, plate_next                                         # ritorna IDs
+def _six_nodes_from_centroid_axes(x0: float, y0: float, z0: float,
+                                  depth_axis: str, width_axis: str,
+                                  D: float, tf1: float, tf2: float,
+                                  B1: float, B2: float) -> Dict[str, Tuple[float, float, float]]:
+    p = [x0, y0, z0]
+    d_idx = _AXIS_IDX[depth_axis]
+    w_idx = _AXIS_IDX[width_axis]
 
-def _quad4(uID, eid, prop, n1,n2,n3,n4):                                 # crea QUAD4
-    conn = (ct.c_long * 5)()                                             # array [n, n1..n4]
-    conn[0]=4; conn[1]=n1; conn[2]=n2; conn[3]=n3; conn[4]=n4            # set connettività
-    _ck(st7.St7SetElementConnection(uID, st7.tyPLATE, int(eid), int(prop), conn),
-        f"SetElementConnection plate {eid}")                              # API set element
+    d_bot = p[d_idx] - (float(D)/2.0 - float(tf1))
+    d_top = p[d_idx] + (float(D)/2.0 - float(tf2))
+    w_top = float(B2)/2.0
+    w_bot = float(B1)/2.0
 
-# ---------- start points dagli “intermediate” del locale --------------------
+    wb = p.copy(); wb[d_idx] = d_bot
+    wt = p.copy(); wt[d_idx] = d_top
 
-def compute_starts_from_intermediates(model_path, create_nodes_out):     # calcola punti di partenza
-    uID = 1                                                              # id sessione
-    _ck(st7.St7Init(), "Init")                                           # init API
+    tl = wt.copy(); tl[w_idx] -= w_top
+    tr = wt.copy(); tr[w_idx] += w_top
+    bl = wb.copy(); bl[w_idx] -= w_bot
+    br = wb.copy(); br[w_idx] += w_bot
+
+    return {
+        "web_bot":   tuple(wb),
+        "web_top":   tuple(wt),
+        "top_left":  tuple(tl),
+        "top_right": tuple(tr),
+        "bot_left":  tuple(bl),
+        "bot_right": tuple(br),
+    }
+
+def _copy_points_set_along_Y(pts: Dict[str, Tuple[float,float,float]], y_target: float,
+                             suffix: str) -> Dict[str, Tuple[float,float,float]]:
+    out = {}
+    for k, (x,y,z) in pts.items():
+        out[f"{k}@{suffix}"] = (x, float(y_target), z)
+    return out
+
+# ----------------- API principale -----------------
+
+def create_midplane_nodes_for_members(
+    model_path: str,
+    beam_intermediate_ids: List[int],
+    col_intermediate_ids: List[int],
+    beam_dims: Dict[str, float],
+    col_dims: Dict[str, float],
+    col_upper_intermediate_node_id: Optional[int] = None,  # nodo intermedio colonna superiore
+) -> Dict[str, Dict[int, Dict[str, int]]]:
+    """
+    Step 1 + repliche colonne su 3 quote Y:
+      Y=min nodi trave, Y=max nodi trave, Y=Y(nodo intermedio colonna superiore).
+    Trave: YZ (D→Y, B→Z). Colonna: XZ (D→X, B→Z).
+    """
+    uID = 1
+    _ck(st7.St7Init(), "Init API")
     try:
-        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open")   # apri file
-        buf = (ct.c_double * 3)()                                        # buffer xyz
-        cid = int(create_nodes_out["base_node_ids"][0])                  # id nodo centro
-        _ck(st7.St7GetNodeXYZ(uID, cid, buf), "GetNodeXYZ center")       # leggi centro
-        C = (buf[0], buf[1], buf[2])                                     # coord centro
-        cx, cy, _ = C                                                    # x e y centro
+        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open model")
+        next_id = _get_total_nodes(uID) + 1
 
-        def xyz(nid):                                                    # helper lettura xyz
-            _ck(st7.St7GetNodeXYZ(uID, int(nid), buf), f"GetNodeXYZ {nid}")  # API read
-            return (buf[0], buf[1], buf[2])                              # tuple xyz
+        out: Dict[str, Dict[int, Dict[str, int]]] = {"beam": {}, "column": {}}
 
-        starts = []                                                      # lista punti intermedi
-        for branch in create_nodes_out["intermediate_ids_by_branch"]:    # per ogni raggio
-            nid = sorted(branch, key=lambda n: n)[0]                     # prendi il più vicino (id minore)
-            starts.append(xyz(nid))                                      # salva punto
+        # ---- Travi ----
+        beam_y_vals: List[float] = []
+        if beam_intermediate_ids:
+            D  = float(beam_dims.get("D", 0.0))
+            B1 = float(beam_dims.get("B1", beam_dims.get("B", 0.0)))
+            B2 = float(beam_dims.get("B2", beam_dims.get("B", 0.0)))
+            tf1 = float(beam_dims.get("tf1", 0.0))
+            tf2 = float(beam_dims.get("tf2", 0.0))
 
-        beamP = max(starts, key=lambda p: abs(p[0]-cx))                  # beam = |Δx| maggiore
-        rest  = [p for p in starts if p is not beamP]                    # altri due
-        topP  = max(rest, key=lambda p: p[1])                            # top = y maggiore
-        botP  = min(rest, key=lambda p: p[1])                            # bot = y minore
-        return {"beam": beamP, "top": topP, "bot": botP}                 # dict risultati
+            for nid in beam_intermediate_ids:
+                x0, y0, z0 = _get_xyz(uID, int(nid))
+                pts = _six_nodes_from_centroid_axes(
+                    x0, y0, z0, depth_axis="y", width_axis="z",
+                    D=D, tf1=tf1, tf2=tf2, B1=B1, B2=B2,
+                )
+                ids_map: Dict[str, int] = {}
+                for lab, P in pts.items():
+                    ids_map[lab] = _new_node(uID, P, next_id); next_id += 1
+                    beam_y_vals.append(P[1])
+                out["beam"][int(nid)] = ids_map
+
+        y_min_beam = min(beam_y_vals) if beam_y_vals else None
+        y_max_beam = max(beam_y_vals) if beam_y_vals else None
+        y_col_upper_mid = None
+        if col_upper_intermediate_node_id is not None:
+            _, y_col_upper_mid, _ = _get_xyz(uID, int(col_upper_intermediate_node_id))
+
+        # ---- Colonne ----
+        if col_intermediate_ids:
+            D  = float(col_dims.get("D", 0.0))
+            B1 = float(col_dims.get("B1", col_dims.get("B", 0.0)))
+            B2 = float(col_dims.get("B2", col_dims.get("B", 0.0)))
+            tf1 = float(col_dims.get("tf1", 0.0))
+            tf2 = float(col_dims.get("tf2", 0.0))
+
+            for nid in col_intermediate_ids:
+                x0, y0, z0 = _get_xyz(uID, int(nid))
+                base_pts = _six_nodes_from_centroid_axes(
+                    x0, y0, z0, depth_axis="x", width_axis="z",
+                    D=D, tf1=tf1, tf2=tf2, B1=B1, B2=B2,
+                )
+
+                replicas: Dict[str, Tuple[float,float,float]] = {}
+                if y_min_beam is not None:
+                    replicas.update(_copy_points_set_along_Y(base_pts, y_min_beam, "yBeamMin"))
+                if y_max_beam is not None:
+                    replicas.update(_copy_points_set_along_Y(base_pts, y_max_beam, "yBeamMax"))
+                if y_col_upper_mid is not None:
+                    replicas.update(_copy_points_set_along_Y(base_pts, y_col_upper_mid, "yColUpperMid"))
+
+                ids_map: Dict[str, int] = {}
+                for lab, P in {**base_pts, **replicas}.items():
+                    ids_map[lab] = _new_node(uID, P, next_id); next_id += 1
+
+                out["column"][int(nid)] = ids_map
+
+        _ck(st7.St7SaveFile(uID), "Save model")
+        out["_y_levels"] = {  # type: ignore
+            "beam_y_min": y_min_beam,
+            "beam_y_max": y_max_beam,
+            "col_upper_mid": y_col_upper_mid,
+        }
+        return out
+
     finally:
         try:
-            st7.St7CloseFile(uID)                                        # chiudi
+            _ck(st7.St7CloseFile(uID), "Close")
         finally:
-            st7.St7Release()                                             # release
+            st7.St7Release()
 
-# ---------- mesh sezione I su un segmento -----------------------------------
+# ----- util plate -----
+def _next_plate_id(uID: int) -> int:
+    tot = ct.c_long()
+    _ck(st7.St7GetTotal(uID, st7.tyPLATE, ct.byref(tot)), "GetTotal tyPLATE")
+    return int(tot.value) + 1
 
-def _mesh_I_on_segment(uID, P0, P1,
-                       D, B1, B2, tw, tf1, tf2,
-                       prop_tw, prop_tf1, prop_tf2,
-                       nx=1, ny=1, nz=1,
-                       ez_hint=None):                     # <-- nuovo argomento
+def _add_plate4(uID: int, n1: int, n2: int, n3: int, n4: int, prop: int, where=""):
+    pid = _next_plate_id(uID)
+    Conn = (ct.c_long * 5)()
+    Conn[0], Conn[1], Conn[2], Conn[3], Conn[4] = 4, n1, n2, n3, n4
+    _ck(st7.St7SetElementConnection(uID, st7.tyPLATE, pid, int(prop), Conn),
+        f"SetElementConnection {where}")
+    return pid
+
+def _flange_band(col_map: dict, tag: str):
+    """Ritorna nodi (L1,R1,R2,L2) alle quote 'tag' usando chiavi top/bot_*@tag."""
+    L1 = col_map.get(f"bot_left@{tag}")
+    R1 = col_map.get(f"bot_right@{tag}")
+    L2 = col_map.get(f"top_left@{tag}")
+    R2 = col_map.get(f"top_right@{tag}")
+    if None in (L1,R1,L2,R2): return None
+    return (int(L1), int(R1), int(R2), int(L2))  # ordine orario
+def build_column_central_flange_plates(
+    model_path: str,
+    *,
+    col_lower_nodes: dict,     # mappa etichette->ID per quota yBeamMin
+    col_upper_nodes: dict,     # mappa etichette->ID per quota yBeamMax
+    y_beam_min_tag: str = "yBeamMin",
+    y_beam_max_tag: str = "yBeamMax",
+    prop_tf1: int = 0,         # property plate per tf1 (flangia inferiore)
+    prop_tf2: int = 0,         # property plate per tf2 (flangia superiore)
+) -> dict:
     """
-    Plate su piani medi: flange a z=±(D/2 - tf/2), web su y=0.
-    Asse locale s = P0→P1.
+    Crea i plate blu centrali della colonna:
+      - sinistra e destra da yBeamMin -> yMid con prop_tf1
+      - sinistra e destra da yMid    -> yBeamMax con prop_tf2
+    Usa SOLO nodi esistenti in 'col_lower_nodes' e 'col_upper_nodes'.
     """
-    ex = _unit(_vsub(P1, P0))                             # asse lungo segmento
-    ex = _unit(_vsub(P1, P0))  # asse lungo
-
-    if ez_hint is not None:
-        # proietta ez_hint sul piano ortogonale a ex e normalizza
-        ezp = _vsub(ez_hint, _smul(_dot(ez_hint, ex), ex))
-        ez  = _unit(ezp)
-        ey  = _unit(_cross(ez, ex))   # terna destra -> web nel piano {ex, ez}
-    else:
-        zref = (0.0,0.0,1.0) if abs(_dot(ex,(0.0,0.0,1.0))) < 0.95 else (1.0,0.0,0.0)
-        ey = _unit(_cross(zref, ex))
-        ez = _unit(_cross(ex, ey))
-
-    L  = _norm(_vsub(P1, P0))                             # lunghezza
-
-    z_top = +(D/2.0 - tf2/2.0)                            # piani medi flange
-    z_bot = -(D/2.0 - tf1/2.0)
-
-    def G(s,y,z):                                         # locale→globale
-        return _vadd(P0, _vadd(_smul(s,ex), _vadd(_smul(y,ey), _smul(z,ez))))
-
-    next_node, next_plate = _next_ids(uID)                # ID liberi
-
-    sx = [L*i/nx for i in range(nx+1)]                    # griglie
-    ys_top = [-B2/2 + B2*j/ny for j in range(ny+1)]
-    ys_bot = [-B1/2 + B1*j/ny for j in range(ny+1)]
-    zz     = [z_bot + (z_top-z_bot)*k/nz for k in range(nz+1)]
-
-    # flange top
-    grid = [[0]*(ny+1) for _ in range(nx+1)]
-    for i,s in enumerate(sx):
-        for j,y in enumerate(ys_top):
-            _new_node(uID, next_node, G(s,y,z_top)); grid[i][j]=next_node; next_node+=1
-    for i in range(nx):
-        for j in range(ny):
-            _quad4(uID, next_plate, prop_tf2, grid[i][j], grid[i+1][j], grid[i+1][j+1], grid[i][j+1]); next_plate+=1
-
-    # flange bottom
-    grid = [[0]*(ny+1) for _ in range(nx+1)]
-    for i,s in enumerate(sx):
-        for j,y in enumerate(ys_bot):
-            _new_node(uID, next_node, G(s,y,z_bot)); grid[i][j]=next_node; next_node+=1
-    for i in range(nx):
-        for j in range(ny):
-            _quad4(uID, next_plate, prop_tf1, grid[i][j], grid[i+1][j], grid[i+1][j+1], grid[i][j+1]); next_plate+=1
-
-    # web
-    grid = [[0]*(nz+1) for _ in range(nx+1)]
-    for i,s in enumerate(sx):
-        for k,z in enumerate(zz):
-            _new_node(uID, next_node, G(s,0.0,z)); grid[i][k]=next_node; next_node+=1
-    for i in range(nx):
-        for k in range(nz):
-            _quad4(uID, next_plate, prop_tw, grid[i][k], grid[i+1][k], grid[i+1][k+1], grid[i][k+1]); next_plate+=1
-
-def _mesh_panel_web(uID, C, ex, ez, half_len_ex, z_bot, z_top, prop, nx=2, nz=2):
-        # ex = verso trave; ez = verso colonna; il pannello sta nel piano {ex, ez}
-        ex = _unit(ex)
-        ez = _unit(ez)
-
-        # generatori punti: C + s*ex + z*ez
-        def G(s, z): 
-            return _vadd(C, _vadd(_smul(s, ex), _smul(z, ez)))
-
-        next_node, next_plate = _next_ids(uID)
-
-        # coordinate lungo ex e ez
-        sx = [-half_len_ex + 2.0*half_len_ex*i/nx for i in range(nx+1)]       # da -L/2 a +L/2
-        zz = [z_bot + (z_top - z_bot)*k/nz for k in range(nz+1)]              # da z_bot a z_top
-
-        # nodi griglia
-        grid = [[0]*(nz+1) for _ in range(nx+1)]
-        for i, s in enumerate(sx):
-            for k, z in enumerate(zz):
-                _new_node(uID, next_node, G(s, z))
-                grid[i][k] = next_node
-                next_node += 1
-
-        # QUAD4 con property `prop`
-        for i in range(nx):
-            for k in range(nz):
-                _quad4(uID, next_plate, prop,
-                    grid[i][k], grid[i+1][k], grid[i+1][k+1], grid[i][k+1])
-                next_plate += 1
-
-# ---------- API principale ---------------------------------------------------
-
-def build_joint_plates(
-    model_path,                                                         # percorso .st7 locale
-    nodes_info,                                                         # dict con centro+vicini (dallo step 13)
-    beam_dims,                                                          # dimensioni trave dict
-    col_dims,                                                           # dimensioni colonna dict
-    prop_names,                                                         # nomi property plate
-    meshing=None,                                                       # parametri mesh opzionali
-    starts=None                                                         # dict opzionale con punti start locali
-):
-    """
-    Crea:
-      - trave: START_beam → centro
-      - colonna alta: START_top → quota z_top della trave al centro
-      - colonna bassa: START_bot → quota z_bot della trave al centro
-    Tutto su piani medi.
-    """
-    nx = (meshing or {}).get("nx", 1)                                  # suddivisioni lungo
-    ny = (meshing or {}).get("ny", 1)                                   # suddivisioni larghezza
-    nz = (meshing or {}).get("nz", 1)                                   # suddivisioni altezza
-
-    uID = 1                                                             # id sessione
-    _ck(st7.St7Init(), "Init")                                          # init API
+    uID = 1
+    _ck(st7.St7Init(), "Init")
     try:
-        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open")  # apri .st7
+        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open")
 
-        C = tuple(nodes_info["ref_node"]["xyz"])                        # coordinate nodo centrale
+        # bande alle due quote di riferimento
+        band_min = _flange_band(col_lower_nodes, y_beam_min_tag)
+        band_max = _flange_band(col_upper_nodes, y_beam_max_tag)
+        if not (band_min and band_max):
+            raise RuntimeError("Nodi flange mancanti alle quote yBeamMin/yBeamMax")
 
-        if starts:                                                      # se passati i tre start locali
-            H = tuple(starts["beam"])                                   # start trave
-            T = tuple(starts["top"])                                    # start colonna alta
-            B = tuple(starts["bot"])                                    # start colonna bassa
-        else:                                                           # fallback: usa i vicini del global
-            cx, cy, _ = C                                               # centro x,y
-            neigh = nodes_info["neighbors"]                             # tre vicini
-            h_neigh = max(neigh, key=lambda n: abs(n["xyz"][0] - cx))   # più orizzontale
-            others  = [n for n in neigh if n is not h_neigh]            # gli altri due
-            top_neigh = max(others, key=lambda n: n["xyz"][1])          # sopra
-            bot_neigh = min(others, key=lambda n: n["xyz"][1])          # sotto
-            H = tuple(h_neigh["xyz"])                                   # coord start trave
-            T = tuple(top_neigh["xyz"])                                 # coord start colonna alta
-            B = tuple(bot_neigh["xyz"])                                 # coord start colonna bassa
+        # ricava Y delle due quote per calcolare yMid
+        u = 1
+        arr = (ct.c_double * 3)()
+        _ck(st7.St7GetNodeXYZ(uID, band_min[0], arr), "Get Y min"); y_min = float(arr[1])
+        _ck(st7.St7GetNodeXYZ(uID, band_max[0], arr), "Get Y max"); y_max = float(arr[1])
+        y_mid = 0.5*(y_min + y_max)
 
-        pb_tw  = _get_propnum_by_name(uID, prop_names["beam"]["tw"])    # numero prop web trave
-        pb_tf1 = _get_propnum_by_name(uID, prop_names["beam"]["tf1"])   # numero prop flange inf trave
-        pb_tf2 = _get_propnum_by_name(uID, prop_names["beam"]["tf2"])   # numero prop flange sup trave
-        pc_tw  = _get_propnum_by_name(uID, prop_names["col"]["tw"])     # numero prop web colonna
-        pc_tf1 = _get_propnum_by_name(uID, prop_names["col"]["tf1"])    # numero prop flange inf colonna
-        pc_tf2 = _get_propnum_by_name(uID, prop_names["col"]["tf2"])    # numero prop flange sup colonna
+        # crea 2 nodi ausiliari alle mezze quote usando i nodi esistenti come base per X,Z
+        def mid_nodes(nL1, nR1, nL2, nR2):
+            _ck(st7.St7GetNodeXYZ(uID, nL1, arr), "Get L1"); xL,_,zL = float(arr[0]), float(arr[1]), float(arr[2])
+            _ck(st7.St7GetNodeXYZ(uID, nR1, arr), "Get R1"); xR,_,zR = float(arr[0]), float(arr[1]), float(arr[2])
+            # crea due nodi temporanei a y_mid e stesse X,Z
+            # usa ID nuovi fuori conflitto
+            tot_nodes = ct.c_long(); _ck(st7.St7GetTotal(uID, st7.tyNODE, ct.byref(tot_nodes)), "Get nodes")
+            nLmid = int(tot_nodes.value)+1; nRmid = nLmid+1
+            P = (ct.c_double*3)(xL, y_mid, zL); _ck(st7.St7SetNodeUCS(uID, nLmid, 1, P), "Set Lmid")
+            P = (ct.c_double*3)(xR, y_mid, zR); _ck(st7.St7SetNodeUCS(uID, nRmid, 1, P), "Set Rmid")
+            return nLmid, nRmid
 
-        # vettori
-        ex_beam = _unit(_vsub(C, H))   # direzione trave
-        ez_col  = _unit(_vsub(T, C))   # asse colonna
+        # mid nodes tra le due quote
+        nLmid, nRmid = mid_nodes(band_min[0], band_min[1], band_max[3], band_max[2])
 
-        # vettori
-        ex_beam = _unit(_vsub(C, H))   # direzione trave
-        ez_col  = _unit(_vsub(T, C))   # asse colonna
+        created = {}
 
-        # 1) TRAVE: H -> end_beam (stop a metà D colonna)
-        end_beam = _vadd(C, _smul(-0.5*col_dims["D"]+col_dims["tf1"]/2, ex_beam))
-        _mesh_I_on_segment(
-            uID, H, end_beam,
-            beam_dims["D"], beam_dims["B1"], beam_dims["B2"],
-            beam_dims["tw"], beam_dims["tf1"], beam_dims["tf2"],
-            prop_tw=pb_tw, prop_tf1=pb_tf1, prop_tf2=pb_tf2,
-            nx=nx, ny=ny, nz=nz,
-            ez_hint=ez_col                 # web standard
-        )
+        # metà inferiore: tf1
+        if prop_tf1:
+            created["mid_lower_flange_L"] = _add_plate4(uID, band_min[0], band_min[1], nRmid, nLmid, prop_tf1, "mid L tf1")
+            created["mid_lower_flange_R"] = _add_plate4(uID, band_min[3], band_min[2], nRmid, nLmid, prop_tf1, "mid R tf1")
 
-        # 2) COLONNA: web contenente la direzione della trave
-        ez_hint = ex_beam               # voglio il piano {ex_col, ez_hint} // beam
+        # metà superiore: tf2
+        if prop_tf2:
+            created["mid_upper_flange_L"] = _add_plate4(uID, nLmid, nRmid, band_max[2], band_max[3], prop_tf2, "mid L tf2")
+            created["mid_upper_flange_R"] = _add_plate4(uID, nLmid, nRmid, band_max[1], band_max[0], prop_tf2, "mid R tf2")
 
-        P_end_top = _vadd(C, _smul(+(beam_dims["D"]/2.0 - beam_dims["tf2"]/2.0), ez_col))
-        _mesh_I_on_segment(
-            uID, T, P_end_top,
-            col_dims["D"], col_dims["B1"], col_dims["B2"],
-            col_dims["tw"], col_dims["tf1"], col_dims["tf2"],
-            prop_tw=pc_tw, prop_tf1=pc_tf1, prop_tf2=pc_tf2,
-            nx=nx, ny=ny, nz=max(nz,2),
-            ez_hint=ez_hint             # <--- orientamento corretto
-        )
+        _ck(st7.St7SaveFile(uID), "Save")
+        return created
 
-        P_end_bot = _vadd(C, _smul(-(beam_dims["D"]/2.0 - beam_dims["tf1"]/2.0), ez_col))
-        _mesh_I_on_segment(
-            uID, B, P_end_bot,
-            col_dims["D"], col_dims["B1"], col_dims["B2"],
-            col_dims["tw"], col_dims["tf1"], col_dims["tf2"],
-            prop_tw=pc_tw, prop_tf1=pc_tf1, prop_tf2=pc_tf2,
-            nx=nx, ny=ny, nz=max(nz,2),
-            ez_hint=ez_hint             # <--- orientamento corretto
-        )
-
-        # --- PANNELLO NODALE: nel piano delle anime, property "t_panel.modale" (ID 7)
-        panel_prop = _get_propnum_by_name(uID, "t_panel.modale")   # creato nello step 19
-        Wpanel = float(col_dims["D"]) - col_dims["tf1"] - col_dims["tf2"]  # larghezza = D_colonna / 2
-        _mesh_panel_web(
-            uID,
-            C=C,                      # centro giunto
-            ex=ex_beam,               # asse trave
-            ez=ez_col,                # asse colonna
-            half_len_ex=Wpanel/2,        # ± D_col/2 lungo ex
-            z_bot=-(beam_dims["D"]/2.0 - beam_dims["tf1"]/2.0),   # piano medio flange inf trave
-            z_top= +(beam_dims["D"]/2.0 - beam_dims["tf2"]/2.0),  # piano medio flange sup trave
-            prop=panel_prop,
-            nx=2, nz=2                # 2 in x, 2 in y (ex, ez)
-        )
-
-
-        _ck(st7.St7SaveFile(uID), "Save")                               # salva file
     finally:
         try:
-            st7.St7CloseFile(uID)                                       # chiudi file
+            _ck(st7.St7CloseFile(uID), "Close")
         finally:
-            st7.St7Release()                                            # release API
+            st7.St7Release()

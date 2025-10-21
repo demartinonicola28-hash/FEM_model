@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 18:52 ON 20/10/2025 
+*SOLUTION COMMENCED AT 18:06 ON 21/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -6,11 +6,11 @@
   
  ANALYSIS TYPE               : LINEAR TRANSIENT DYNAMIC 
   
- COMPUTER NAME               : PC-101 
+ COMPUTER NAME               : PC-106 
  USER LOGON NAME             : demnic15950 
- CPU                         : Intel(R) Core(TM) i9-14900K 
- USABLE PHYSICAL MEMORY      : 31.7 GB 
- USABLE VIRTUAL MEMORY       : 36.4 GB 
+ CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
+ USABLE PHYSICAL MEMORY      : 15.8 GB 
+ USABLE VIRTUAL MEMORY       : 18.2 GB 
   
  MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\Telaio_2D.st7" 
  RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\telaio_2D.LTA" 
@@ -69,7 +69,7 @@
  [M] MATRIX SIZE             : 1.4 KB 
  [C] MATRIX SIZE             : 1.4 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 169.0 GB 
+ FREE SCRATCH SPACE          : 172.4 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
@@ -132,7 +132,7 @@
   Axial      2.032344E+05         11   3.000000E-01  
   Moment 2   9.799973E+04          3   4.000000E-01  
   
- TOTAL CPU TIME              : 0.125 Seconds 
+ TOTAL CPU TIME              : 0.297 Seconds 
   
  
 *SUMMARY OF MESSAGES
@@ -140,5 +140,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 18:52 ON 20/10/2025 
-*SOLUTION TIME: 1 Second 
+*SOLUTION COMPLETED AT 18:06 ON 21/10/2025 
+*SOLUTION TIME: 2 Seconds 
