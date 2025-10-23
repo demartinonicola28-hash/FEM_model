@@ -30,26 +30,93 @@ def _new_node(uID: int, xyz: Sequence[float], node_num: int) -> int:
     _ck(st7.St7SetNodeUCS(uID, int(node_num), 1, P), f"SetNodeUCS n{node_num}")
     return int(node_num)
 
+def _get_total_elements(uID: int) -> int:
+    tot = ct.c_long()
+    _ck(st7.St7GetTotal(uID, st7.tyPLATE, ct.byref(tot)), "GetTotal tyPLATE")
+    return int(tot.value)
+
+def _get_total_beams(uID: int) -> int:
+    tot = ct.c_long()
+    _ck(st7.St7GetTotal(uID, st7.tyBEAM, ct.byref(tot)), "GetTotal tyBEAM")
+    return int(tot.value)
+
+# <--- MODIFICA CRITICA: Funzione _new_beam CORRETTA ---
+def _new_beam(uID: int, prop_id: int, n1: int, n2: int, next_id: int) -> int:
+    """Crea un nuovo elemento Beam2."""
+    elem_id = int(next_id)
+    
+    # 1. Imposta la proprietà
+    _ck(st7.St7SetBeamProperty(uID, elem_id, int(prop_id)), f"SetBeamProp {elem_id}")
+    
+    # 2. Imposta connessione e tipo
+    conn = (ct.c_long * 2)(int(n1), int(n2))
+    
+    # ERRORE PRECEDENTE: passavo st7.bpEnd invece di st7.btBeam2
+    # La chiamata corretta per un beam a 2 nodi usa st7.btBeam2
+    _ck(st7.St7SetBeamConnection(uID, elem_id, st7.btBeam2, conn), f"SetBeamConn {elem_id} type=Beam2")
+    
+    return elem_id + 1
+# <--- FINE MODIFICA ---
+
+def _create_dummy_beam_prop(uID: int, prop_id: int):
+    """
+    Crea una proprietà BEAM fittizia (Null Section) da usare 
+    per i beam di contorno temporanei.
+    """
+    try:
+        _ck(st7.St7SetPropertyType(uID, prop_id, st7.ptBeam), f"SetPropType {prop_id}")
+        _ck(st7.St7SetMaterial(uID, prop_id, 1), f"SetMaterial {prop_id}")
+        _ck(st7.St7SetBeamSectionType(uID, prop_id, st7.btNullSection), f"SetBeamSect {prop_id}")
+        _ck(st7.St7SetSectionName(uID, prop_id, b"Temp_Outline"), "SetSectionName Temp")
+    except Exception as e:
+        # Ignora l'errore se la proprietà 99 esiste già
+        print(f"Nota: Impossibile creare prop beam fittizia {prop_id} (potrebbe esistere già).")
+
 # ----------------- geometria sezioni -----------------
 
 _AXIS_IDX = {"x": 0, "y": 1, "z": 2}
 
+def _calculate_centroid_distances(
+    D: float, B1: float, tf1: float, B2: float, tf2: float, tw: float
+) -> Tuple[float, float]:
+    """Calcola le distanze dal baricentro teorico ai LEMBI ESTERNI."""
+    try:
+        A1 = B1 * tf1
+        y1 = tf1 / 2.0
+        hw = D - tf1 - tf2
+        Aw = hw * tw
+        yw = tf1 + hw / 2.0
+        A2 = B2 * tf2
+        y2 = D - tf2 / 2.0
+        Atot = A1 + Aw + A2
+        if Atot == 0:
+            return (D / 2.0, D / 2.0) 
+        yc = (A1 * y1 + Aw * yw + A2 * y2) / Atot
+        dist_c_to_ext_bot = yc
+        dist_c_to_ext_top = D - yc 
+        return (dist_c_to_ext_top, dist_c_to_ext_bot)
+    except Exception:
+        return (D / 2.0, D / 2.0)
+
+
 def _six_nodes_from_centroid_axes(x0: float, y0: float, z0: float,
-                                  depth_axis: str, width_axis: str,
-                                  D: float, tf1: float, tf2: float,
-                                  B1: float, B2: float) -> Dict[str, Tuple[float, float, float]]:
+                                 depth_axis: str, width_axis: str,
+                                 dist_c_to_ext_top: float, 
+                                 dist_c_to_ext_bot: float, 
+                                 tf1: float, tf2: float,
+                                 B1: float, B2: float
+                                 ) -> Dict[str, Tuple[float, float, float]]:
     p = [x0, y0, z0]
     d_idx = _AXIS_IDX[depth_axis]
     w_idx = _AXIS_IDX[width_axis]
 
-    d_bot = p[d_idx] - (float(D)/2.0 - float(tf1))
-    d_top = p[d_idx] + (float(D)/2.0 - float(tf2))
+    d_bot = p[d_idx] - (float(dist_c_to_ext_bot) - float(tf1)/2.0)
+    d_top = p[d_idx] + (float(dist_c_to_ext_top) - float(tf2)/2.0)
     w_top = float(B2)/2.0
     w_bot = float(B1)/2.0
 
     wb = p.copy(); wb[d_idx] = d_bot
     wt = p.copy(); wt[d_idx] = d_top
-
     tl = wt.copy(); tl[w_idx] -= w_top
     tr = wt.copy(); tr[w_idx] += w_top
     bl = wb.copy(); bl[w_idx] -= w_bot
@@ -64,6 +131,7 @@ def _six_nodes_from_centroid_axes(x0: float, y0: float, z0: float,
         "bot_right": tuple(br),
     }
 
+
 def _copy_points_set_along_Y(pts: Dict[str, Tuple[float,float,float]], y_target: float,
                              suffix: str) -> Dict[str, Tuple[float,float,float]]:
     out = {}
@@ -71,7 +139,7 @@ def _copy_points_set_along_Y(pts: Dict[str, Tuple[float,float,float]], y_target:
         out[f"{k}@{suffix}"] = (x, float(y_target), z)
     return out
 
-# ----------------- API principale -----------------
+# ----------------- API principale (NODI) -----------------
 
 def create_midplane_nodes_for_members(
     model_path: str,
@@ -79,13 +147,11 @@ def create_midplane_nodes_for_members(
     col_intermediate_ids: List[int],
     beam_dims: Dict[str, float],
     col_dims: Dict[str, float],
-    col_upper_intermediate_node_id: Optional[int] = None,  # nodo intermedio colonna superiore
+    col_upper_intermediate_node_id: Optional[int] = None, 
 ) -> Dict[str, Dict[int, Dict[str, int]]]:
-    """
-    Step 1 + repliche colonne su 3 quote Y:
-      Y=min nodi trave, Y=max nodi trave, Y=Y(nodo intermedio colonna superiore).
-    Trave: YZ (D→Y, B→Z). Colonna: XZ (D→X, B→Z).
-    """
+    
+    # ... (Codice per la creazione dei nodi - INVARIATO) ...
+    
     uID = 1
     _ck(st7.St7Init(), "Init API")
     try:
@@ -97,17 +163,24 @@ def create_midplane_nodes_for_members(
         # ---- Travi ----
         beam_y_vals: List[float] = []
         if beam_intermediate_ids:
-            D  = float(beam_dims.get("D", 0.0))
-            B1 = float(beam_dims.get("B1", beam_dims.get("B", 0.0)))
-            B2 = float(beam_dims.get("B2", beam_dims.get("B", 0.0)))
+            D   = float(beam_dims.get("D", 0.0)) 
+            B1  = float(beam_dims.get("B1", beam_dims.get("B", 0.0)))
+            B2  = float(beam_dims.get("B2", beam_dims.get("B", 0.0)))
             tf1 = float(beam_dims.get("tf1", 0.0))
             tf2 = float(beam_dims.get("tf2", 0.0))
+            tw  = float(beam_dims.get("tw", 0.0)) 
+            
+            dist_c_top_beam, dist_c_bot_beam = _calculate_centroid_distances(
+                D, B1, tf1, B2, tf2, tw
+            )
 
             for nid in beam_intermediate_ids:
                 x0, y0, z0 = _get_xyz(uID, int(nid))
                 pts = _six_nodes_from_centroid_axes(
                     x0, y0, z0, depth_axis="y", width_axis="z",
-                    D=D, tf1=tf1, tf2=tf2, B1=B1, B2=B2,
+                    dist_c_to_ext_top=dist_c_top_beam, 
+                    dist_c_to_ext_bot=dist_c_bot_beam, 
+                    tf1=tf1, tf2=tf2, B1=B1, B2=B2
                 )
                 ids_map: Dict[str, int] = {}
                 for lab, P in pts.items():
@@ -123,17 +196,24 @@ def create_midplane_nodes_for_members(
 
         # ---- Colonne ----
         if col_intermediate_ids:
-            D  = float(col_dims.get("D", 0.0))
-            B1 = float(col_dims.get("B1", col_dims.get("B", 0.0)))
-            B2 = float(col_dims.get("B2", col_dims.get("B", 0.0)))
+            D   = float(col_dims.get("D", 0.0))
+            B1  = float(col_dims.get("B1", col_dims.get("B", 0.0)))
+            B2  = float(col_dims.get("B2", col_dims.get("B", 0.0)))
             tf1 = float(col_dims.get("tf1", 0.0))
             tf2 = float(col_dims.get("tf2", 0.0))
+            tw  = float(col_dims.get("tw", 0.0)) 
+
+            dist_c_top_col, dist_c_bot_col = _calculate_centroid_distances(
+                D, B1, tf1, B2, tf2, tw
+            )
 
             for nid in col_intermediate_ids:
                 x0, y0, z0 = _get_xyz(uID, int(nid))
                 base_pts = _six_nodes_from_centroid_axes(
                     x0, y0, z0, depth_axis="x", width_axis="z",
-                    D=D, tf1=tf1, tf2=tf2, B1=B1, B2=B2,
+                    dist_c_to_ext_top=dist_c_top_col, 
+                    dist_c_to_ext_bot=dist_c_bot_col, 
+                    tf1=tf1, tf2=tf2, B1=B1, B2=B2
                 )
 
                 replicas: Dict[str, Tuple[float,float,float]] = {}
@@ -142,7 +222,10 @@ def create_midplane_nodes_for_members(
                 if y_max_beam is not None:
                     replicas.update(_copy_points_set_along_Y(base_pts, y_max_beam, "yBeamMax"))
                 if y_col_upper_mid is not None:
-                    replicas.update(_copy_points_set_along_Y(base_pts, y_col_upper_mid, "yColUpperMid"))
+                    if nid == col_upper_intermediate_node_id:
+                         pass
+                    else:
+                        replicas.update(_copy_points_set_along_Y(base_pts, y_col_upper_mid, "yColUpperMid"))
 
                 ids_map: Dict[str, int] = {}
                 for lab, P in {**base_pts, **replicas}.items():
@@ -151,7 +234,7 @@ def create_midplane_nodes_for_members(
                 out["column"][int(nid)] = ids_map
 
         _ck(st7.St7SaveFile(uID), "Save model")
-        out["_y_levels"] = {  # type: ignore
+        out["_y_levels"] = { 
             "beam_y_min": y_min_beam,
             "beam_y_max": y_max_beam,
             "col_upper_mid": y_col_upper_mid,
@@ -164,91 +247,146 @@ def create_midplane_nodes_for_members(
         finally:
             st7.St7Release()
 
-# ----- util plate -----
-def _next_plate_id(uID: int) -> int:
-    tot = ct.c_long()
-    _ck(st7.St7GetTotal(uID, st7.tyPLATE, ct.byref(tot)), "GetTotal tyPLATE")
-    return int(tot.value) + 1
 
-def _add_plate4(uID: int, n1: int, n2: int, n3: int, n4: int, prop: int, where=""):
-    pid = _next_plate_id(uID)
-    Conn = (ct.c_long * 5)()
-    Conn[0], Conn[1], Conn[2], Conn[3], Conn[4] = 4, n1, n2, n3, n4
-    _ck(st7.St7SetElementConnection(uID, st7.tyPLATE, pid, int(prop), Conn),
-        f"SetElementConnection {where}")
-    return pid
+# ----------------- API principale (PLATE) -----------------
+# <--- Logica "Beam Polygon Conversion" CON funzione _new_beam CORRETTA ---
 
-def _flange_band(col_map: dict, tag: str):
-    """Ritorna nodi (L1,R1,R2,L2) alle quote 'tag' usando chiavi top/bot_*@tag."""
-    L1 = col_map.get(f"bot_left@{tag}")
-    R1 = col_map.get(f"bot_right@{tag}")
-    L2 = col_map.get(f"top_left@{tag}")
-    R2 = col_map.get(f"top_right@{tag}")
-    if None in (L1,R1,L2,R2): return None
-    return (int(L1), int(R1), int(R2), int(L2))  # ordine orario
-def build_column_central_flange_plates(
+def create_plates_for_joint(
     model_path: str,
-    *,
-    col_lower_nodes: dict,     # mappa etichette->ID per quota yBeamMin
-    col_upper_nodes: dict,     # mappa etichette->ID per quota yBeamMax
-    y_beam_min_tag: str = "yBeamMin",
-    y_beam_max_tag: str = "yBeamMax",
-    prop_tf1: int = 0,         # property plate per tf1 (flangia inferiore)
-    prop_tf2: int = 0,         # property plate per tf2 (flangia superiore)
-) -> dict:
+    res_nodes: Dict,
+    props_map: Dict,
+    beam_mid_id: int,
+    col_low_id: int, 
+    col_up_id: int   
+) -> None:
     """
-    Crea i plate blu centrali della colonna:
-      - sinistra e destra da yBeamMin -> yMid con prop_tf1
-      - sinistra e destra da yMid    -> yBeamMax con prop_tf2
-    Usa SOLO nodi esistenti in 'col_lower_nodes' e 'col_upper_nodes'.
+    Crea i plate usando l'approccio "Beam Polygon Conversion".
     """
+    
     uID = 1
-    _ck(st7.St7Init(), "Init")
+    _ck(st7.St7Init(), "Init API")
     try:
-        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open")
+        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open model")
+        
+        elements_before = _get_total_elements(uID)
+        next_beam_id = _get_total_beams(uID) + 1
+        
+        # 1. Creare una proprietà beam temporanea (usa un ID alto)
+        TEMP_BEAM_PROP = 99
+        _create_dummy_beam_prop(uID, TEMP_BEAM_PROP)
+        print(f"Creata/verificata proprietà beam temporanea {TEMP_BEAM_PROP}")
 
-        # bande alle due quote di riferimento
-        band_min = _flange_band(col_lower_nodes, y_beam_min_tag)
-        band_max = _flange_band(col_upper_nodes, y_beam_max_tag)
-        if not (band_min and band_max):
-            raise RuntimeError("Nodi flange mancanti alle quote yBeamMin/yBeamMax")
+        # --- Estrai mappe nodi ---
+        beam_nodes = res_nodes["beam"][beam_mid_id]
+        col_nodes_low = res_nodes["column"][col_low_id]
+        col_nodes_up = res_nodes["column"][col_up_id]
 
-        # ricava Y delle due quote per calcolare yMid
-        u = 1
-        arr = (ct.c_double * 3)()
-        _ck(st7.St7GetNodeXYZ(uID, band_min[0], arr), "Get Y min"); y_min = float(arr[1])
-        _ck(st7.St7GetNodeXYZ(uID, band_max[0], arr), "Get Y max"); y_max = float(arr[1])
-        y_mid = 0.5*(y_min + y_max)
+        # --- Estrai ID proprietà PLATE ---
+        p_beam_w  = props_map["beam_web"]
+        p_beam_f1 = props_map["beam_flange_bot"]
+        p_beam_f2 = props_map["beam_flange_top"]
+        
+        p_col_w  = props_map["col_web"]
+        p_col_f1 = props_map["col_flange_bot"] 
+        p_col_f2 = props_map["col_flange_top"] 
 
-        # crea 2 nodi ausiliari alle mezze quote usando i nodi esistenti come base per X,Z
-        def mid_nodes(nL1, nR1, nL2, nR2):
-            _ck(st7.St7GetNodeXYZ(uID, nL1, arr), "Get L1"); xL,_,zL = float(arr[0]), float(arr[1]), float(arr[2])
-            _ck(st7.St7GetNodeXYZ(uID, nR1, arr), "Get R1"); xR,_,zR = float(arr[0]), float(arr[1]), float(arr[2])
-            # crea due nodi temporanei a y_mid e stesse X,Z
-            # usa ID nuovi fuori conflitto
-            tot_nodes = ct.c_long(); _ck(st7.St7GetTotal(uID, st7.tyNODE, ct.byref(tot_nodes)), "Get nodes")
-            nLmid = int(tot_nodes.value)+1; nRmid = nLmid+1
-            P = (ct.c_double*3)(xL, y_mid, zL); _ck(st7.St7SetNodeUCS(uID, nLmid, 1, P), "Set Lmid")
-            P = (ct.c_double*3)(xR, y_mid, zR); _ck(st7.St7SetNodeUCS(uID, nRmid, 1, P), "Set Rmid")
-            return nLmid, nRmid
+        p_panel = props_map.get("panel_zone", p_col_w)
+        p_gusset = props_map.get("gusset", p_beam_w) 
 
-        # mid nodes tra le due quote
-        nLmid, nRmid = mid_nodes(band_min[0], band_min[1], band_max[3], band_max[2])
+        # --- Definizione dei poligoni ---
+        polygons_to_create: List[Tuple[int, List[int]]] = []
 
-        created = {}
+        # --- 1. Segmento Colonna Inferiore ---
+        polygons_to_create.extend([
+            (p_col_w, [col_nodes_low["web_bot"], col_nodes_low["web_top"], col_nodes_low["web_top@yBeamMin"], col_nodes_low["web_bot@yBeamMin"]]),
+            (p_col_f1, [col_nodes_low["bot_left"], col_nodes_low["web_bot"], col_nodes_low["web_bot@yBeamMin"], col_nodes_low["bot_left@yBeamMin"]]),
+            (p_col_f1, [col_nodes_low["web_bot"], col_nodes_low["bot_right"], col_nodes_low["bot_right@yBeamMin"], col_nodes_low["web_bot@yBeamMin"]]),
+            (p_col_f2, [col_nodes_low["top_left"], col_nodes_low["web_top"], col_nodes_low["web_top@yBeamMin"], col_nodes_low["top_left@yBeamMin"]]),
+            (p_col_f2, [col_nodes_low["web_top"], col_nodes_low["top_right"], col_nodes_low["top_right@yBeamMin"], col_nodes_low["web_top@yBeamMin"]]),
+        ])
 
-        # metà inferiore: tf1
-        if prop_tf1:
-            created["mid_lower_flange_L"] = _add_plate4(uID, band_min[0], band_min[1], nRmid, nLmid, prop_tf1, "mid L tf1")
-            created["mid_lower_flange_R"] = _add_plate4(uID, band_min[3], band_min[2], nRmid, nLmid, prop_tf1, "mid R tf1")
+        # --- 2. Segmento Colonna Pannello ---
+        polygons_to_create.extend([
+            (p_panel, [col_nodes_low["web_bot@yBeamMin"], col_nodes_low["web_top@yBeamMin"], col_nodes_low["web_top@yBeamMax"], col_nodes_low["web_bot@yBeamMax"]]),
+            (p_col_f1, [col_nodes_low["bot_left@yBeamMin"], col_nodes_low["web_bot@yBeamMin"], col_nodes_low["web_bot@yBeamMax"], col_nodes_low["bot_left@yBeamMax"]]),
+            (p_col_f1, [col_nodes_low["web_bot@yBeamMin"], col_nodes_low["bot_right@yBeamMin"], col_nodes_low["bot_right@yBeamMax"], col_nodes_low["web_bot@yBeamMax"]]),
+            (p_col_f2, [col_nodes_low["top_left@yBeamMin"], col_nodes_low["web_top@yBeamMin"], col_nodes_low["web_top@yBeamMax"], col_nodes_low["top_left@yBeamMax"]]),
+            (p_col_f2, [col_nodes_low["web_top@yBeamMin"], col_nodes_low["top_right@yBeamMin"], col_nodes_low["top_right@yBeamMax"], col_nodes_low["web_top@yBeamMax"]]),
+        ])
 
-        # metà superiore: tf2
-        if prop_tf2:
-            created["mid_upper_flange_L"] = _add_plate4(uID, nLmid, nRmid, band_max[2], band_max[3], prop_tf2, "mid L tf2")
-            created["mid_upper_flange_R"] = _add_plate4(uID, nLmid, nRmid, band_max[1], band_max[0], prop_tf2, "mid R tf2")
+        # --- 3. Segmento Colonna Superiore ---
+        polygons_to_create.extend([
+            (p_col_w, [col_nodes_low["web_bot@yBeamMax"], col_nodes_low["web_top@yBeamMax"], col_nodes_up["web_top"], col_nodes_up["web_bot"]]),
+            (p_col_f1, [col_nodes_low["bot_left@yBeamMax"], col_nodes_low["web_bot@yBeamMax"], col_nodes_up["web_bot"], col_nodes_up["bot_left"]]),
+            (p_col_f1, [col_nodes_low["web_bot@yBeamMax"], col_nodes_low["bot_right@yBeamMax"], col_nodes_up["bot_right"], col_nodes_up["web_bot"]]),
+            (p_col_f2, [col_nodes_low["top_left@yBeamMax"], col_nodes_low["web_top@yBeamMax"], col_nodes_up["web_top"], col_nodes_up["top_left"]]),
+            (p_col_f2, [col_nodes_low["web_top@yBeamMax"], col_nodes_low["top_right@yBeamMax"], col_nodes_up["top_right"], col_nodes_up["web_top"]]),
+        ])
 
-        _ck(st7.St7SaveFile(uID), "Save")
-        return created
+        # --- 4. Trave ---
+        polygons_to_create.extend([
+            (p_beam_w, [beam_nodes["web_bot"], beam_nodes["web_top"], col_nodes_low["web_top@yBeamMax"], col_nodes_low["web_bot@yBeamMin"]]),
+            (p_beam_f1, [beam_nodes["bot_left"], beam_nodes["bot_right"], col_nodes_low["bot_right@yBeamMin"], col_nodes_low["bot_left@yBeamMin"]]),
+            (p_beam_f2, [beam_nodes["top_left"], beam_nodes["top_right"], col_nodes_low["top_right@yBeamMax"], col_nodes_low["top_left@yBeamMax"]]),
+        ])
+
+        # --- 5. Irrigidimenti / Diaframmi ---
+        polygons_to_create.extend([
+            (p_gusset, [col_nodes_low["bot_left@yBeamMin"], col_nodes_low["web_bot@yBeamMin"], col_nodes_low["web_top@yBeamMin"], col_nodes_low["top_left@yBeamMin"]]),
+            (p_gusset, [col_nodes_low["web_bot@yBeamMin"], col_nodes_low["bot_right@yBeamMin"], col_nodes_low["top_right@yBeamMin"], col_nodes_low["web_top@yBeamMin"]]),
+            (p_gusset, [col_nodes_low["bot_left@yBeamMax"], col_nodes_low["web_bot@yBeamMax"], col_nodes_low["web_top@yBeamMax"], col_nodes_low["top_left@yBeamMax"]]),
+            (p_gusset, [col_nodes_low["web_bot@yBeamMax"], col_nodes_low["bot_right@yBeamMax"], col_nodes_low["top_right@yBeamMax"], col_nodes_low["web_top@yBeamMax"]]),
+        ])
+        
+        # --- Creazione effettiva elementi ---
+        print(f"Tentativo di creazione di {len(polygons_to_create)} plate da poligoni di beam...")
+        
+        created_count_loop = 0
+        
+        for plate_prop, node_list in polygons_to_create:
+            if len(node_list) != 4:
+                print(f"  ATTENZIONE: Saltato poligono non-Quad4 per prop {plate_prop}")
+                continue
+            
+            try:
+                # Crea i 4 beam temporanei
+                n1, n2, n3, n4 = node_list
+                b1_id = _new_beam(uID, TEMP_BEAM_PROP, n1, n2, next_beam_id); next_beam_id += 1
+                b2_id = _new_beam(uID, TEMP_BEAM_PROP, n2, n3, next_beam_id); next_beam_id += 1
+                b3_id = _new_beam(uID, TEMP_BEAM_PROP, n3, n4, next_beam_id); next_beam_id += 1
+                b4_id = _new_beam(uID, TEMP_BEAM_PROP, n4, n1, next_beam_id); next_beam_id += 1
+                
+                beam_ids = [b1_id, b2_id, b3_id, b4_id]
+                beam_array = (ct.c_long * 4)(*beam_ids)
+                
+                # Converti e cancella i beam
+                _ck(st7.St7ConvertBeamPolygonToPlate(
+                    uID,
+                    4,            # NumBeams
+                    beam_array,   # BeamList
+                    plate_prop,   # PropID (per il plate)
+                    0,            # Group (0=nessuno)
+                    True          # DeleteBeams = True
+                ), f"ConvertBeamPolygonToPlate prop {plate_prop}")
+                
+                created_count_loop += 1
+            except Exception as e:
+                print(f"  ERRORE durante la conversione del poligono per prop {plate_prop}: {e}")
+
+        
+        print(f"Loop di conversione API eseguito {created_count_loop} volte.")
+        _ck(st7.St7SaveFile(uID), "Save model")
+        
+        elements_after = _get_total_elements(uID)
+        print(f"Elementi plate dopo salvataggio: {elements_after}")
+        final_created = elements_after - elements_before
+        
+        if final_created == 0:
+            print("ATTENZIONE: 0 plate sono stati creati.")
+        elif final_created != len(polygons_to_create):
+             print(f"ATTENZIONE: Creati solo {final_created} / {len(polygons_to_create)} plate.")
+        else:
+            print(f"Successo: {final_created} plate creati.")
 
     finally:
         try:

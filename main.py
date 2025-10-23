@@ -49,8 +49,7 @@ from local_model.create_file import create_st7_with_nodes
 from local_model.freedom_cases import create_unit_disp_freedom_cases
 from local_model.section_data import export_section_data
 from local_model.plate_properties import create_plate_properties, ask_panel_gusset_thicknesses
-from local_model.plate_geometry import create_midplane_nodes_for_members, build_column_central_flange_plates
-
+from local_model.plate_geometry import create_midplane_nodes_for_members, create_plates_for_joint
 
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
@@ -406,27 +405,33 @@ if __name__ == "__main__":
     # quote sezioni dal global (1=colonna, 2=trave)
     sec = export_section_data(model_path=path, only_props=[1,2])["data"]
 
+    # Dati Sezione Trave (Prop 2)
+    s_beam = sec[2] 
     beam_dims = {
-        "D":  sec[2].get("D",  sec[2].get("D3")),
-        "B1": sec[2].get("B1", sec[2].get("D1", sec[2].get("B"))),
-        "B2": sec[2].get("B2", sec[2].get("D2", sec[2].get("B"))),
-        "tw": sec[1].get("tw", sec[2].get("T3", sec[2].get("tf"))),
-        "tf2":  sec[1].get("tf2",  sec[2].get("T1")),
-        "tf1": sec[1].get("tf1", sec[2].get("T2", sec[2].get("tf"))),
+        # Fallback: nome generico -> nome BSL I-Section (es. D3)
+        "D":   s_beam.get("D",   s_beam.get("D3")),
+        "B1":  s_beam.get("B1",  s_beam.get("D1", s_beam.get("B"))),
+        "B2":  s_beam.get("B2",  s_beam.get("D2", s_beam.get("B"))),
+        "tw":  s_beam.get("tw",  s_beam.get("T3")),                        # T3 = spessore anima
+        "tf2": s_beam.get("tf2", s_beam.get("T1", s_beam.get("tf"))), # T1 = flangia sup
+        "tf1": s_beam.get("tf1", s_beam.get("T2", s_beam.get("tf"))), # T2 = flangia inf
     }
+    
+    # Dati Sezione Colonna (Prop 1)
+    s_col = sec[1]
     col_dims = {
-        "D":  sec[1].get("D",  sec[1].get("D3")),
-        "B1": sec[1].get("B1", sec[1].get("D1", sec[1].get("B"))),
-        "B2": sec[1].get("B2", sec[1].get("D2", sec[1].get("B"))),
-        "tw": sec[1].get("tw", sec[1].get("T3", sec[1].get("tf"))),
-        "tf2":  sec[1].get("tf2",  sec[1].get("T1")),
-        "tf1": sec[1].get("tf1", sec[1].get("T2", sec[1].get("tf"))),
+        "D":   s_col.get("D",   s_col.get("D3")),
+        "B1":  s_col.get("B1",  s_col.get("D1", s_col.get("B"))),
+        "B2":  s_col.get("B2",  s_col.get("D2", s_col.get("B"))),
+        "tw":  s_col.get("tw",  s_col.get("T3")),
+        "tf2": s_col.get("tf2", s_col.get("T1", s_col.get("tf"))),
+        "tf1": s_col.get("tf1", s_col.get("T2", s_col.get("tf"))),
     }
-
     # GUI: mostra quote e chiede spessori extra (pannello modale, fazzoletti)
     extra = ask_panel_gusset_thicknesses(beam_dims, col_dims)
 
     # spessori base per creare le plate properties
+    # (Questa logica ora è corretta perché beam_dims/col_dims sono corretti)
     beam_thk = {"tw": beam_dims["tw"], "tf1": beam_dims["tf1"], "tf2": beam_dims["tf2"]}
     col_thk  = {"tw": col_dims["tw"],  "tf1": col_dims["tf1"],  "tf2": col_dims["tf2"]}
 
@@ -440,69 +445,50 @@ if __name__ == "__main__":
     )
     print("Plate properties:", props_map)
 
-    #SISTEMARE FINESTRA GUI NOMI E ALTRO PERO' FUNZIONA
-    #APPLICA A tw LO SPESSORE DI tf2 E VICEVERSA
 
-    # === Step 20: plate geometry (web strips + panel al nodo) ====================
-
-
-    # ids intermedi: prendi i 3 “intermediate” che hai generato per beam/column
-    beam_mid_ids = [ out["intermediate_ids_by_branch"][0][0] ]  # trave
-    col_mid_ids  = [ out["intermediate_ids_by_branch"][1][0] ]  # colonna inferiore
-
-    # nodo intermedio colonna superiore = branch 3 (o quello in alto nella tua geometria)
-    col_upper_mid_id = out["intermediate_ids_by_branch"][2][0]
-
-    res_nodes = create_midplane_nodes_for_members(
-        model_path=new_model_path,
-        beam_intermediate_ids=beam_mid_ids,
-        col_intermediate_ids=col_mid_ids,
-        beam_dims=beam_dims,
-        col_dims=col_dims,
-        col_upper_intermediate_node_id=col_upper_mid_id,  # qui passo il nodo “in alto”
-    )
-
-    print("Quote Y usate:", res_nodes["_y_levels"])
-
-
+    # === Step 20: plate geometry (midplane nodes) ====================
+    
     # === Nodi piani medi + plate centrali flange colonna =========================
 
     # ID intermedi dallo step 16
-    beam_mid_id = out["intermediate_ids_by_branch"][0][0]
-    col_low_id  = out["intermediate_ids_by_branch"][1][0]
-    col_up_id   = out["intermediate_ids_by_branch"][2][0]
+    beam_mid_id = out["intermediate_ids_by_branch"][0][0] # Trave (Branch 0)
+    col_low_id  = out["intermediate_ids_by_branch"][1][0] # Colonna Inf (Branch 1)
+    col_up_id   = out["intermediate_ids_by_branch"][2][0] # Colonna Sup (Branch 2)
 
     # Genera/aggiorna i nodi piani medi per trave e per entrambe le colonne
+    # La nuova 'create_midplane_nodes_for_members' calcola i centroidi internamente.
     res_nodes = create_midplane_nodes_for_members(
         model_path=new_model_path,
         beam_intermediate_ids=[beam_mid_id],
-        col_intermediate_ids=[col_low_id, col_up_id],
-        beam_dims=beam_dims,
-        col_dims=col_dims,
-        col_upper_intermediate_node_id=col_up_id,  # terza quota = intermedio colonna superiore
+        col_intermediate_ids=[col_low_id, col_up_id], # Passa entrambe le colonne
+        beam_dims=beam_dims, # Dims corretti da Step 19
+        col_dims=col_dims,   # Dims corretti da Step 19
+        col_upper_intermediate_node_id=col_up_id, # Terza quota = intermedio colonna superiore
     )
+    
+    print("Nodi piani medi creati.")
+    print("Quote Y usate:", res_nodes["_y_levels"]) # Stampa per debug
 
-    # Mappe nodi per le due colonne
-    col_lower = res_nodes["column"][col_low_id]
-    col_upper = res_nodes["column"][col_up_id]
+    # Mappe nodi per le due colonne (per usi futuri, se servono)
+    col_lower_nodes = res_nodes["column"][col_low_id]
+    col_upper_nodes = res_nodes["column"][col_up_id]
 
-    # Proprietà plate coerenti con plate_properties.py
-    prop_tf1 = int(props_map["tf1_sez.colonna"])  # flangia inferiore colonna
-    prop_tf2 = int(props_map["tf2_sez.colonna"])  # flangia superiore colonna
-
-    # Crea i plate blu centrali (solo flange, fascia [yBeamMin, yBeamMax], metà tf1/tf2)
-    created = build_column_central_flange_plates(
-        model_path=new_model_path,
-        col_lower_nodes=col_lower,
-        col_upper_nodes=col_upper,
-        y_beam_min_tag="yBeamMin",
-        y_beam_max_tag="yBeamMax",
-        prop_tf1=prop_tf1,
-        prop_tf2=prop_tf2,
-    )
-    print("Plate centrali creati:", created)
+    # === Step 21: create plates for joint (Beam Polygon Conversion) ========================
+    try:
+        print("\nCreazione plate per il nodo...")
+        create_plates_for_joint(
+            model_path=new_model_path,
+            res_nodes=res_nodes,       # Nodi creati allo Step 20
+            props_map=props_map,       # Proprietà create allo Step 19
+            beam_mid_id=beam_mid_id,
+            col_low_id=col_low_id,   
+            col_up_id=col_up_id      
+        )
+    except Exception as e:
+        print(f"Errore creazione plate: {e}")
 
 
-    # === Step 21: apertura automatica del file Straus7 local model ==========================
+    # === Step 22: apertura automatica del file Straus7 local model ==========================
+    # (Questo era il vecchio Step 21)
     print("\nApertura automatica del file Straus7...")
     os.startfile(new_model_path)
