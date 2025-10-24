@@ -51,7 +51,6 @@ from local_model.section_data import export_section_data
 from local_model.plate_properties import create_plate_properties, ask_panel_gusset_thicknesses
 from local_model.plate_geometry import create_midplane_nodes_for_members, create_plates_for_joint
 
-
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -446,49 +445,57 @@ if __name__ == "__main__":
     print("Plate properties:", props_map)
 
 
-    # === Step 20: plate geometry (midplane nodes) ====================
-    
-    # === Nodi piani medi + plate centrali flange colonna =========================
-
-    # ID intermedi dallo step 16
+    # === Step 20: plate geometry (Nodi) ====================
+    # <--- MODIFICATO ---
+    # ID nodi intermedi originali (dal global model, Step 16)
+    # Questi servono solo per dire a create_midplane_nodes_for_members
+    # quali nodi usare come 'centri' per generare i 6 nodi del piano mediano.
     beam_mid_id = out["intermediate_ids_by_branch"][0][0] # Trave (Branch 0)
     col_low_id  = out["intermediate_ids_by_branch"][1][0] # Colonna Inf (Branch 1)
     col_up_id   = out["intermediate_ids_by_branch"][2][0] # Colonna Sup (Branch 2)
 
-    # Genera/aggiorna i nodi piani medi per trave e per entrambe le colonne
-    # La nuova 'create_midplane_nodes_for_members' calcola i centroidi internamente.
-    res_nodes = create_midplane_nodes_for_members(
-        model_path=new_model_path,
-        beam_intermediate_ids=[beam_mid_id],
-        col_intermediate_ids=[col_low_id, col_up_id], # Passa entrambe le colonne
-        beam_dims=beam_dims, # Dims corretti da Step 19
-        col_dims=col_dims,   # Dims corretti da Step 19
-        col_upper_intermediate_node_id=col_up_id, # Terza quota = intermedio colonna superiore
-    )
-    
-    print("Nodi piani medi creati.")
-    print("Quote Y usate:", res_nodes["_y_levels"]) # Stampa per debug
-
-    # Mappe nodi per le due colonne (per usi futuri, se servono)
-    col_lower_nodes = res_nodes["column"][col_low_id]
-    col_upper_nodes = res_nodes["column"][col_up_id]
-
-    # === Step 21: create plates for joint (Beam Polygon Conversion) ========================
+    res_nodes = {} # Inizializza res_nodes
     try:
-        print("\nCreazione plate per il nodo...")
-        create_plates_for_joint(
+        print("\nCreazione nodi piani medi...")
+        # Crea i nodi e ottieni il dizionario strutturato
+        res_nodes = create_midplane_nodes_for_members(
             model_path=new_model_path,
-            res_nodes=res_nodes,       # Nodi creati allo Step 20
-            props_map=props_map,       # Proprietà create allo Step 19
-            beam_mid_id=beam_mid_id,
-            col_low_id=col_low_id,   
-            col_up_id=col_up_id      
+            beam_intermediate_ids=[beam_mid_id],
+            col_intermediate_ids=[col_low_id, col_up_id], # Passa entrambi i nodi originali
+            beam_dims=beam_dims,
+            col_dims=col_dims,
+            col_upper_intermediate_node_id=col_up_id,
         )
+        print("Nodi piani medi creati.")
+        print("Quote Y usate:", res_nodes.get("_y_levels", "N/D")) # Usa .get() per sicurezza
+
+        # Stampa qualche esempio per verifica
+        # print("Esempio nodi trave:", res_nodes.get("beam_nodes", {}))
+        # print("Esempio nodi colonna inf base:", res_nodes.get("col_inf_nodes_base", {}))
+
     except Exception as e:
-        print(f"Errore creazione plate: {e}")
+        print(f"Errore creazione nodi piani medi: {e}")
+        sys.exit(1) # Esce se i nodi falliscono
+
+    # === Step 21: create plates for joint (St7SetElementConnection) ========================
+    # <--- MODIFICATO ---
+    if res_nodes and props_map: # Procede solo se nodi e proprietà sono stati creati
+        try:
+            print("\nCreazione plate per il nodo...")
+            # Chiama la funzione per creare le piastre, passando i dizionari
+            create_plates_for_joint(
+                model_path=new_model_path,
+                res_nodes=res_nodes,       # Nodi creati allo Step 20
+                props_map=props_map        # Proprietà create allo Step 19
+                # Non servono più beam_mid_id, col_low_id, col_up_id qui
+            )
+        except Exception as e:
+            print(f"Errore creazione plate: {e}")
+    else:
+        print("ATTENZIONE: Saltata creazione plate perché i nodi o le proprietà non sono stati generati correttamente.")
 
 
     # === Step 22: apertura automatica del file Straus7 local model ==========================
-    # (Questo era il vecchio Step 21)
+    # <--- Rinumerato ---
     print("\nApertura automatica del file Straus7...")
     os.startfile(new_model_path)
