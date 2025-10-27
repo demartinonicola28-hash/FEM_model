@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 15:23 ON 24/10/2025 
+*SOLUTION COMMENCED AT 13:52 ON 27/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -38,17 +38,17 @@
  NUMBER OF BEAM SLICES       : 10 
   
  RAYLEIGH DAMPING INPUT DATA  
- Frequency 1                 : 7.869950E-01 Hz 
+ Frequency 1                 : 9.199630E-01 Hz 
  Damping Ratio 1             : 5.000000E+00 % 
- Frequency 2                 : 2.107928E+00 Hz 
+ Frequency 2                 : 2.568834E+00 Hz 
  Damping Ratio 2             : 5.000000E+00 % 
   
  DAMPING COEFFICIENTS 
- Alpha                       : 3.600565E-01   
- Beta                        : 5.497726E-03   
+ Alpha                       : 4.256088E-01   
+ Beta                        : 4.561886E-03   
   
  NUMBER OF EQUATIONS         : 36 
- FREE SCRATCH SPACE          : 168.6 GB 
+ FREE SCRATCH SPACE          : 177.5 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
@@ -60,10 +60,10 @@
  MODAL EXCITATION CASE 1     : "SR_X" 
  Mode     Frequency    Spectral Value  Damping Ratio    Amplitude     Excitation    Participation 
              (Hz)          (m/s^2)                        (N/m)          (N.m)           (%)          (%) 
-   1     7.869950E-01   6.207744E-01   5.000000E-02   2.498876E+04   1.610663E+01   9.230958E+01    92.310 
-   2     2.107928E+00   1.663530E+00   5.000000E-02   2.049745E+03   1.843394E-01   7.571850E+00     7.572 
+   1     9.199630E-01   7.255672E-01   5.000000E-02   2.459883E+04   1.160029E+01   9.063579E+01    90.636 
+   2     2.568834E+00   1.719586E+00   5.000000E-02   2.493206E+03   1.086281E-01   9.186357E+00     9.186 
  -----------------------------------------------------------------------------------------------   -------  
- TOTAL MASS PARTICIPATION (%)                                                       9.988143E+01    99.881  
+ TOTAL MASS PARTICIPATION (%)                                                       9.982214E+01    99.822  
   
  TOTAL CPU TIME              : 0.047 Seconds 
   
@@ -73,5 +73,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 15:23 ON 24/10/2025 
+*SOLUTION COMPLETED AT 13:52 ON 27/10/2025 
 *SOLUTION TIME: 0 Seconds 

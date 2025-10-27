@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 15:23 ON 24/10/2025 
+*SOLUTION COMMENCED AT 13:52 ON 27/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -43,48 +43,48 @@
  MATRIX FILL-IN              : 25.8% 
  [K] MATRIX SIZE             : 1.9 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 168.6 GB 
+ FREE SCRATCH SPACE          : 177.5 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
  SUMMATION OF APPLIED LOADS  
           Case        FX           FY           FZ           MX           MY           MZ        Case Name 
- Beams       1   +0.00000E+00 -5.95534E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
+ Beams       1   +0.00000E+00 -6.75288E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
              2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-12   "2:G2" 
              3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.53477E-12   "3:Q" 
- Total       1   +0.00000E+00 -5.95534E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
+ Total       1   +0.00000E+00 -6.75288E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
              2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-12   "2:G2" 
              3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.53477E-12   "3:Q" 
- Vector      1   +0.00000E+00 -5.47189E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.42109E-14   "1:G1" 
+ Vector      1   +0.00000E+00 -6.15550E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.42109E-14   "1:G1" 
              2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-12   "2:G2" 
              3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.42109E-12   "3:Q" 
   
  SUMMATION OF MOMENTS OF APPLIED LOADS ABOUT THE ORIGIN [Vector]  
           Case        MXo          MYo          MZo       Case Name 
-             1   +0.00000E+00 +0.00000E+00 -1.36797E+04   "1:G1" 
+             1   +0.00000E+00 +0.00000E+00 -1.53887E+04   "1:G1" 
              2   +0.00000E+00 +0.00000E+00 -4.37500E+05   "2:G2" 
              3   +0.00000E+00 +0.00000E+00 -2.12500E+05   "3:Q" 
   
  Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
   
- MAXIMUM PIVOT               : 7.546467E+08 (Node 13 DY) 
- MINIMUM PIVOT               : 3.614936E+05 (Node 7 DX) 
+ MAXIMUM PIVOT               : 9.324933E+08 (Node 13 DY) 
+ MINIMUM PIVOT               : 4.857967E+05 (Node 7 DX) 
   
  Results for 3 load cases... 
   
  MAXIMUM NODE DISPLACEMENT MAGNITUDES 
    Case        DX           DY           DZ           RX           RY           RZ       Case Name 
-      1    2.94409E-05  1.83597E-04  0.00000E+00  0.00000E+00  0.00000E+00  1.00552E-04  "1:G1" 
-      2    2.00379E-03  1.18727E-02  0.00000E+00  0.00000E+00  0.00000E+00  6.84370E-03  "2:G2" 
-      3    2.27405E-03  8.35289E-03  0.00000E+00  0.00000E+00  0.00000E+00  4.48986E-03  "3:Q" 
+      1    1.98117E-05  1.56027E-04  0.00000E+00  0.00000E+00  0.00000E+00  7.61900E-05  "1:G1" 
+      2    1.34841E-03  9.99629E-03  0.00000E+00  0.00000E+00  0.00000E+00  5.18560E-03  "2:G2" 
+      3    1.67645E-03  6.96918E-03  0.00000E+00  0.00000E+00  0.00000E+00  3.58386E-03  "3:Q" 
   
  DIRECT SUMMATION OF NODE REACTION FORCES 
    Case        FX           FY           FZ           MX           MY           MZ       Case Name 
-      1   -1.42109E-14 +5.95534E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 -3.69482E-13  "1:G1" 
-      2   +0.00000E+00 +1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 -3.63798E-12  "2:G2" 
-      3   +0.00000E+00 +8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 -4.27463E-11  "3:Q" 
+      1   -1.42109E-14 +6.75288E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.42109E-13  "1:G1" 
+      2   +0.00000E+00 +1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.36424E-11  "2:G2" 
+      3   +0.00000E+00 +8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +7.27596E-12  "3:Q" 
   
- TOTAL CPU TIME              : 0.016 Seconds 
+ TOTAL CPU TIME              : 0.031 Seconds 
   
  
 *SUMMARY OF MESSAGES
@@ -92,5 +92,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 15:23 ON 24/10/2025 
+*SOLUTION COMPLETED AT 13:52 ON 27/10/2025 
 *SOLUTION TIME: 0 Seconds 

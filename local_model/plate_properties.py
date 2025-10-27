@@ -108,7 +108,7 @@ def ask_panel_gusset_thicknesses(beam_dims, col_dims, panel_default="", gusset_d
     pad = {"padx": 6, "pady": 4}
 
     # --- TRAVE (colonna 0) ---------------------------------------------------
-    lf_beam = ttk.Labelframe(root, text="Sezione TRAVE")
+    lf_beam = ttk.Labelframe(root, text="Sezione Trave")
     lf_beam.grid(row=0, column=0, sticky="n", **pad)
     for r, k in enumerate(("D","B1","B2","tw","tf1","tf2")):
         ttk.Label(lf_beam, text=k, width=10).grid(row=r, column=0, sticky="e", **pad)
@@ -118,7 +118,7 @@ def ask_panel_gusset_thicknesses(beam_dims, col_dims, panel_default="", gusset_d
         e.state(["disabled"])
 
     # --- COLONNA (colonna 1) -------------------------------------------------
-    lf_col = ttk.Labelframe(root, text="Sezione COLONNA")
+    lf_col = ttk.Labelframe(root, text="Sezione Colonna")
     lf_col.grid(row=0, column=1, sticky="n", **pad)
     for r, k in enumerate(("D","B1","B2","tw","tf1","tf2")):
         ttk.Label(lf_col, text=k, width=10).grid(row=r, column=0, sticky="e", **pad)
@@ -128,7 +128,7 @@ def ask_panel_gusset_thicknesses(beam_dims, col_dims, panel_default="", gusset_d
         e.state(["disabled"])
 
     # --- EXTRA (colonna 2) ---------------------------------------------------
-    lf_extra = ttk.Labelframe(root, text="Extra (TRAVE)")
+    lf_extra = ttk.Labelframe(root, text="Dettagli Nodo")
     lf_extra.grid(row=0, column=2, sticky="n", **pad)
 
     # Read-only: dimensioni pannello nodale
@@ -146,7 +146,7 @@ def ask_panel_gusset_thicknesses(beam_dims, col_dims, panel_default="", gusset_d
 
     # Checkbox + entry: sp. pannello nodale
     var_panel = tk.IntVar(value=0)
-    cb_panel = ttk.Checkbutton(lf_extra, text="sp. pannello nodale", variable=var_panel)
+    cb_panel = ttk.Checkbutton(lf_extra, text="t pannello nodale", variable=var_panel)
     cb_panel.grid(row=2, column=0, sticky="w", **pad)
     ent_panel = ttk.Entry(lf_extra, width=14, state="disabled")
     ent_panel.grid(row=2, column=1, **pad)
@@ -158,7 +158,7 @@ def ask_panel_gusset_thicknesses(beam_dims, col_dims, panel_default="", gusset_d
 
     # Checkbox + entry: sp. fazzoletti
     var_gusset = tk.IntVar(value=0)
-    cb_gusset = ttk.Checkbutton(lf_extra, text="sp. fazzoletti", variable=var_gusset)
+    cb_gusset = ttk.Checkbutton(lf_extra, text="t fazzoletti", variable=var_gusset)
     cb_gusset.grid(row=3, column=0, sticky="w", **pad)
     ent_gusset = ttk.Entry(lf_extra, width=14, state="disabled")
     ent_gusset.grid(row=3, column=1, **pad)

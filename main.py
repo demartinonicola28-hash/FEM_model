@@ -50,6 +50,9 @@ from local_model.freedom_cases import create_unit_disp_freedom_cases
 from local_model.section_data import export_section_data
 from local_model.plate_properties import create_plate_properties, ask_panel_gusset_thicknesses
 from local_model.plate_geometry import create_midplane_nodes_for_members, create_plates_for_joint
+from local_model.import_tables import run_import_disp_time_tables
+from local_model.cut_elements import run_cut_elements_at_nodes
+from local_model.link_cluster import create_rigid_link_clusters
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -306,33 +309,49 @@ if __name__ == "__main__":
         # usa solo i nodi offset, escludendo il nodo trave-pilastro
         node_ids = [n["id"] for n in nodes_info["neighbors"]]
 
-        # cartella di output: disp_time
-        out_dir = os.path.join(os.path.dirname(str(model)), "..", "disp_time")
+        # --- CORREZIONE PERCORSO ---
+        # Il modello si trova in ".../straus7_model/global/"
+        # Dobbiamo risalire di DUE livelli (..) per arrivare a "FEM_model"
+        # e poi entrare in "disp_time".
+        out_dir = os.path.join(os.path.dirname(str(model)), "..", "..", "disp_time")
+        
+        # Verifica se la cartella esiste prima di tentare la pulizia
+        if not os.path.isdir(out_dir):
+            print(f"Creo la cartella di output: {out_dir}")
+            os.makedirs(out_dir, exist_ok=True)
+        else:
+            print(f"Cartella di output (pulizia): {out_dir}")
 
         # elimina eventuali file .txt già presenti nella cartella
         old_txt = glob.glob(os.path.join(out_dir, "*.txt"))
         if old_txt:
-            print(f"\nPulizia cartella: {out_dir}")
+            print(f"Pulizia di {len(old_txt)} file .txt dalla cartella...")
             for f in old_txt:
                 try:
                     os.remove(f)
+                    print(f"  - Eliminato: {os.path.basename(f)}")
                 except Exception as e:
-                    print(f"  Errore eliminazione {f}: {e}")
+                    print(f"  - Errore eliminazione {f}: {e}")
+        else:
+            print("Nessun vecchio file .txt da eliminare.")
 
-        # esporta DX/DY/DZ nel tempo per i nodi offset dai risultati LTD (.LTA)
+        # esporta DX/DY/RZ nel tempo per i nodi offset dai risultati LTD (.LTA)
+        # (La funzione 'export_ltd_node_displacements' ora è corretta e scriverà RZ)
         paths_by_node = export_ltd_node_displacements(
             model_path=str(model),
             node_ids=node_ids,
-            out_dir=out_dir
+            out_dir=out_dir  # Ora passa il percorso corretto
         )
 
         print("\nSpostamenti nel tempo esportati (solo nodi offset):")
         for nid, dirs in paths_by_node.items():
             print(f" Nodo {nid}:")
             for comp, fp in dirs.items():
-                print(f"   {comp}: {fp}")
+                # Stampa solo il nome del file, non il percorso completo
+                print(f"   {comp}: {os.path.basename(fp)}")
+                
     except Exception as e:
-        print("Errore esportazione spostamenti:", e)
+        print(f"Errore esportazione spostamenti: {e}")
 
     # === Step 15: apertura automatica del file Straus7 global model ==========================
     print("\nApertura automatica del file Straus7...")
@@ -495,7 +514,46 @@ if __name__ == "__main__":
         print("ATTENZIONE: Saltata creazione plate perché i nodi o le proprietà non sono stati generati correttamente.")
 
 
-    # === Step 22: apertura automatica del file Straus7 local model ==========================
+    # === Step 22: importa tabelle disp-time nel modello locale ==========================
+    # Importa i file .txt generati allo Step 14 (es. disp_time/node3_DX.txt)
+    # come tabelle "Factor vs Time" nel modello locale appena creato.
+
+    print("\nAvvio importazione tabelle Spostamento-Tempo nel modello locale...")
+    try:
+        # 'new_model_path' è stato definito allo Step 16
+        # 'out_dir' (la cartella disp_time) è stato definito allo Step 14
+
+        run_import_disp_time_tables(
+            model_path=new_model_path,
+            disp_time_folder=out_dir
+        )
+    except Exception as e:
+        print(f"ERRORE: Fallita importazione tabelle disp-time: {e}")
+
+    # === Step 23: cut element ====================================
+    print("\nAvvio taglio (stitching) dei plate nel modello locale...")
+    try:
+        # 'new_model_path' è stato definito allo Step 16
+        run_cut_elements_at_nodes(new_model_path)
+    except Exception as e:
+        print(f"ERRORE: Fallito il taglio degli elementi: {e}") 
+
+    # === Step 24: crea rigid links (Beam/Plate) ==============================
+    print("\nAvvio creazione Rigid Link Clusters nel modello locale...")
+    try:
+        # 'new_model_path' (definito Step 16)
+        # 'out' (dizionario nodi da Step 16)
+        # 'res_nodes' (dizionario plate-nodes da Step 20)
+        
+        create_rigid_link_clusters(
+            model_path=new_model_path,
+            intermediate_nodes=out,
+            plate_nodes_info=res_nodes
+        )
+    except Exception as e:
+        print(f"ERRORE: Fallita creazione Link Clusters: {e}")
+
+    # === Step 25: apertura automatica del file Straus7 local model ==========================
     # <--- Rinumerato ---
     print("\nApertura automatica del file Straus7...")
     os.startfile(new_model_path)

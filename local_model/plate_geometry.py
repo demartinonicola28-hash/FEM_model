@@ -247,7 +247,7 @@ def create_plates_for_joint(
         target_x_coord = None
         # <--- MODIFICA: Usa il nodo della FLANGIA SX (top_left) come riferimento per X ---
         if col_inf_max.get("flangia_sx"):
-            sx_node_id = col_inf_max["flangia_sx"][0] # ID del nodo top_left @ yBeamMin
+            sx_node_id = col_inf_max["flangia_sx"][1] # ID del nodo top_left @ yBeamMin
             target_x_coord, _, _ = _get_xyz(uID, sx_node_id)
             print(f"  Coordinata X target (da nodo flangia sx {sx_node_id}): {target_x_coord}")
         # ---> FINE MODIFICA

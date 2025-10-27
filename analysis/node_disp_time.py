@@ -1,20 +1,18 @@
-# analysis/node_disp.py
-# Trova il nodo trave-pilastro destro (X≈span, Y≈h_story) e
-# esporta gli spostamenti nel tempo DX/DY/DZ per 3 nodi vicini dalla LTD.
+# analysis/node_disp_time.py
+# (Questo file è CORRETTO. Il problema è nel main.py)
 
-import os                 # gestione percorsi/cartelle
-import glob               # ricerca file per pattern (*.lta)
-import math               # distanza euclidea
-import ctypes as C        # tipi C per le API Straus7
-import St7API as st7      # API Straus7 R3, usate sempre con namespace "st7"
-
+import os
+import glob
+import math
+import ctypes as C
+import St7API as st7
 
 # ------------------------- utilità API di base -------------------------
 
 def _ck(err: int, msg: str) -> None:
     """Controllo errori API: solleva con ultimo errore Straus7."""
     if err != 0:
-        last = st7.St7GetLastError()                  # ultimo codice errore registrato da Straus7
+        last = st7.St7GetLastError()
         raise RuntimeError(f"{msg} (err={err}, last={last})")
 
 def _open(uID: int, path: str) -> None:
@@ -27,13 +25,13 @@ def _close(uID: int) -> None:
 
 def _total_nodes(uID: int) -> int:
     """Ritorna il numero totale di nodi nel modello."""
-    tot = C.c_long()                                   # variabile long C per output
+    tot = C.c_long()
     _ck(st7.St7GetTotal(uID, st7.tyNODE, C.byref(tot)), "St7GetTotal tyNODE")
     return tot.value
 
 def _xyz(uID: int, node_num: int) -> tuple[float, float, float]:
     """Ritorna le coordinate (X,Y,Z) di un nodo."""
-    arr = (C.c_double * 3)()                           # buffer C double[3]
+    arr = (C.c_double * 3)()
     _ck(st7.St7GetNodeXYZ(uID, node_num, arr), f"St7GetNodeXYZ {node_num}")
     return arr[0], arr[1], arr[2]
 
@@ -51,31 +49,27 @@ def find_node(model_path: str, span: float, h_story: float, offset: float, tol: 
     Trova poi i 3 nodi più vicini a distanza≈offset.
     Ritorna: {"ref_node": {"id", "xyz"}, "neighbors": [{"id","dist","xyz"}×3]}.
     """
-    _ck(st7.St7Init(), "St7Init")                      # inizializza la sessione API
+    _ck(st7.St7Init(), "St7Init")
     try:
-        _open(1, model_path)                           # apre il modello sul file unit 1
+        _open(1, model_path)
         try:
-            N = _total_nodes(1)                        # numero totale di nodi
-            nodes: list[tuple[int, float, float, float]] = []  # (id, x, y, z)
-            for n in range(1, N + 1):                  # Straus7 indicizza nodi da 1 a N
+            N = _total_nodes(1)
+            nodes: list[tuple[int, float, float, float]] = []
+            for n in range(1, N + 1):
                 try:
-                    x, y, z = _xyz(1, n)               # coord nodo n
-                    nodes.append((n, x, y, z))         # accumula
+                    x, y, z = _xyz(1, n)
+                    nodes.append((n, x, y, z))
                 except RuntimeError:
-                    continue                           # salta nodi non risolti
+                    continue
 
-            # filtra nodi alla quota Y≈h_story e X≈span
             cands = [t for t in nodes if abs(t[1] - span) <= tol and abs(t[2] - h_story) <= tol]
             if not cands:
                 raise ValueError(f"Nessun nodo con X≈{span} e Y≈{h_story}. Aumenta tol.")
 
-            # nodo di riferimento = con X massima tra i candidati
             ref_id, xr, yr, zr = max(cands, key=lambda t: t[1])
-
-            # ricerca vicini a distanza ≈ offset con finestra relativa 0.1% o tol assoluto
-            pr = (xr, yr, zr)                          # punto di riferimento
-            win = max(tol, offset * 1e-3)              # tolleranza sulla distanza
-            neigh: list[tuple[float, int, tuple[float, float, float]]] = []  # (dist, id, xyz)
+            pr = (xr, yr, zr)
+            win = max(tol, offset * 1e-3)
+            neigh: list[tuple[float, int, tuple[float, float, float]]] = []
             for n, x, y, z in nodes:
                 if n == ref_id:
                     continue
@@ -83,7 +77,6 @@ def find_node(model_path: str, span: float, h_story: float, offset: float, tol: 
                 if abs(d - offset) <= win:
                     neigh.append((d, n, (x, y, z)))
 
-            # se meno di 3 nodi trovati all'offset, completa coi più vicini
             if len(neigh) < 3:
                 ordered = sorted(
                     (( _dist3(pr, (x, y, z)), n, (x, y, z)) for n, x, y, z in nodes if n != ref_id),
@@ -96,23 +89,21 @@ def find_node(model_path: str, span: float, h_story: float, offset: float, tol: 
                     if len(neigh) >= 3:
                         break
 
-            neigh.sort(key=lambda t: t[0])             # ordina per distanza crescente
-            sel = neigh[:3]                            # prendi i 3 nodi
+            neigh.sort(key=lambda t: t[0])
+            sel = neigh[:3]
 
-            # stampa diagnostica essenziale
             print(f"Rif: Node {ref_id}  XYZ=({xr:.6g}, {yr:.6g}, {zr:.6g})")
             for i, (d, n, p) in enumerate(sel, 1):
                 print(f"{i}: Node {n}  d={d:.6g}  XYZ=({p[0]:.6g},{p[1]:.6g},{p[2]:.6g})")
 
-            # pacchetto risultati
             return {
                 "ref_node": {"id": ref_id, "xyz": (xr, yr, zr)},
                 "neighbors": [{"id": n, "dist": d, "xyz": p} for d, n, p in sel],
             }
         finally:
-            _close(1)                                   # chiude il modello
+            _close(1)
     finally:
-        _ck(st7.St7Release(), "St7Release")            # rilascia la sessione API
+        _ck(st7.St7Release(), "St7Release")
 
 
 # ------------------------- utilità risultati LTD -------------------------
@@ -123,40 +114,39 @@ def _guess_lta_path(model_path: str) -> str:
     1) prova <model>.lta
     2) altrimenti il primo *.lta nella stessa cartella.
     """
-    base = os.path.splitext(model_path)[0]             # parte senza estensione
-    cand = base + ".lta"                               # tentativo stesso nome .lta
+    base = os.path.splitext(model_path)[0]
+    cand = base + ".lta"
     if os.path.isfile(cand):
         return cand
-    folder = os.path.dirname(model_path)               # cartella del modello
-    lst = sorted(glob.glob(os.path.join(folder, "*.lta")))  # cerca qualsiasi .lta
+    folder = os.path.dirname(model_path)
+    lst = sorted(glob.glob(os.path.join(folder, "*.lta")))
     if lst:
         return lst[0]
-    raise FileNotFoundError("File risultati LTD (.lta) non trovato")
+    raise FileNotFoundError(f"File risultati LTD (.lta) non trovato in {folder}")
 
 
 # ------------------------- export spostamenti nel tempo -------------------------
 
 def export_ltd_node_displacements(model_path: str, node_ids: list[int], out_dir: str) -> dict:
     """
-    Estrae DX, DY, DZ nel tempo dai risultati LTD e salva 3 file TXT per nodo.
+    Estrae DX, DY, RZ nel tempo dai risultati LTD e salva 3 file TXT per nodo.
     Parametri:
       - model_path: percorso del .st7
       - node_ids: lista di ID nodi
       - out_dir: cartella di output per i TXT
-    Ritorna: {node_id: {"DX": path, "DY": path, "DZ": path}}
+    Ritorna: {node_id: {"DX": path, "DY": path, "RZ": path}}
     """
-    os.makedirs(out_dir, exist_ok=True)                # crea la cartella se non esiste
-    resfile = _guess_lta_path(model_path)              # trova il .lta associato
+    os.makedirs(out_dir, exist_ok=True)
+    resfile = _guess_lta_path(model_path)
 
-    uID = 1                                           # unit ID file Straus7
-    _ck(st7.St7Init(), "Init")                        # inizializza API
-    created: dict[int, dict[str, str]] = {}           # mappa output per nodo/direzione
+    uID = 1
+    _ck(st7.St7Init(), "Init")
+    created: dict[int, dict[str, str]] = {}
     try:
-        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open .st7")  # apre il modello
+        _ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), "Open .st7")
         try:
-            # apre file risultati LTD senza combinazioni
-            numP = C.c_long()                          # numero di "primary cases" (steps temporali)
-            numS = C.c_long()                          # non usato qui (secondary)
+            numP = C.c_long()
+            numS = C.c_long()
             _ck(
                 st7.St7OpenResultFile(
                     uID,
@@ -168,40 +158,40 @@ def export_ltd_node_displacements(model_path: str, node_ids: list[int], out_dir:
                 ),
                 "Open .lta"
             )
-            ncases = int(numP.value)                   # numero di step temporali
-
-            # prepara i file di output per ogni nodo e per DX/DY/DZ
-            fhandles: dict[tuple[int, int], any] = {}  # mappa (node_id, comp_idx) -> file
+            ncases = int(numP.value)
+            
+            # --- QUESTA PARTE È CORRETTA ---
+            # Prepara i file di output per ogni nodo e per DX/DY/RZ
+            fhandles: dict[tuple[int, int], any] = {}
             for nid in node_ids:
                 created[nid] = {}
-                for comp, label in [(0, "DX"), (1, "DY"), (2, "DZ")]:  # 0..2 = traslazioni globali
+                # Componenti corrette: 0=DX, 1=DY, 5=RZ
+                for comp, label in [(0, "DX"), (1, "DY"), (5, "RZ")]:
                     fp = os.path.join(out_dir, f"node{nid}_{label}.txt")
                     fh = open(fp, "w", encoding="utf-8")
-                    fh.write("t\tvalue\n")            # intestazione colonne
+                    fh.write("t\tvalue\n")
                     fhandles[(nid, comp)] = fh
                     created[nid][label] = fp
+            # --------------------------------
 
-            # buffer per letture risultato
-            vec6 = (C.c_double * 6)()                  # risultato nodale 6 componenti
-            tval = C.c_double()                        # tempo del case
+            vec6 = (C.c_double * 6)()
+            tval = C.c_double()
 
-            # loop su tutti i cases temporali
-            for case in range(1, ncases + 1):          # cases indicizzati da 1
+            for case in range(1, ncases + 1):
                 _ck(st7.St7GetResultCaseTime(uID, case, C.byref(tval)), "Get time")
-                t = tval.value                         # tempo corrente [s]
+                t = tval.value
                 for nid in node_ids:
-                    _ck(st7.St7GetNodeResult(uID, st7.rtNodeDisp, nid, case, vec6), "Get node disp")
-                    # scrive DX/DY/DZ
-                    for comp in (0, 1, 2):
+                    _ck(st7.St7GetNodeResult(uID, st7.rtNodeDisp, nid, case, vec6), f"Get node disp {nid}")
+                    # Scrive DX/DY/RZ
+                    for comp in (0, 1, 5):
                         fhandles[(nid, comp)].write(f"{t}\t{vec6[comp]}\n")
 
-            # chiusura file TXT
             for fh in fhandles.values():
                 fh.close()
 
-            _ck(st7.St7CloseResultFile(uID), "Close results")  # chiude il .lta
+            _ck(st7.St7CloseResultFile(uID), "Close results")
             return created
         finally:
-            _ck(st7.St7CloseFile(uID), "Close .st7")           # chiude il .st7
+            _ck(st7.St7CloseFile(uID), "Close .st7")
     finally:
-        _ck(st7.St7Release(), "Release")                       # rilascia API
+        _ck(st7.St7Release(), "Release")
