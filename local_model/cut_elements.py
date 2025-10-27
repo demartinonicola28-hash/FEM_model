@@ -1,5 +1,5 @@
 # local_model/cut_elements.py
-# Taglia tutti i plate del modello lungo i piani XZ e YZ
+# Taglia tutti i plate del modello lungo i piani XZ, YZ e XY
 # definiti dalle coordinate di tutti i nodi.
 # Questo serve a "cucire" (stitch) le varie parti del giunto.
 
@@ -64,7 +64,7 @@ def _deselect_all_plates(uID: int):
 
 def run_cut_elements_at_nodes(model_path: str, edge_tol: int = 10):
     """
-    Taglia tutti i plate del modello lungo i piani XZ e YZ 
+    Taglia tutti i plate del modello lungo i piani XZ, YZ e XY
     definiti da tutte le coordinate uniche dei nodi.
     
     Args:
@@ -78,66 +78,76 @@ def run_cut_elements_at_nodes(model_path: str, edge_tol: int = 10):
     try:
         ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), f"Open local model {model_path}")
         
-        # 1. Colleziona UN NODO per ogni coordinata X e Y unica
+        # 1. Colleziona UN NODO per ogni coordinata X, Y e Z unica
         total_nodes = _get_total_entities(uID, st7.tyNODE)
         # Mappa [coordinata] -> node_id
         nodes_for_x: Dict[float, int] = {}
         nodes_for_y: Dict[float, int] = {}
+        nodes_for_z: Dict[float, int] = {} # <-- AGGIUNTO
         
         print(f"  ...Lettura delle coordinate di {total_nodes} nodi...")
         for n_id in range(1, total_nodes + 1):
             try:
                 x, y, z = _get_node_xyz(uID, n_id)
-                # Salva un nodo di riferimento per ogni coordinata X e Y
+                # Salva un nodo di riferimento per ogni coordinata
                 if x not in nodes_for_x:
                     nodes_for_x[x] = n_id
                 if y not in nodes_for_y:
                     nodes_for_y[y] = n_id
+                if z not in nodes_for_z: # <-- AGGIUNTO
+                    nodes_for_z[z] = n_id
             except Exception:
                 continue
         
         print(f"  ...Trovati {len(nodes_for_x)} piani YZ (costante X).")
         print(f"  ...Trovati {len(nodes_for_y)} piani XZ (costante Y).")
+        print(f"  ...Trovati {len(nodes_for_z)} piani XY (costante Z).") # <-- AGGIUNTO
 
         # 2. Seleziona tutti i plate
         _select_all_plates(uID)
 
-        # 3. Imposta "Keep Selected" (funzione trovata: St7SetKeepSelect)
+        # 3. Imposta "Keep Selected"
         ck(st7.St7SetKeepSelect(uID, 1), "Set KeepSelect = ON")
         
         # Variabile C per ricevere l'ID del piano creato
         plane_id_output = ct.c_long()
         
         # 4. Taglia lungo i piani YZ (costante X)
-        #    Plane=2 per YZ (dalla documentazione)
+        #    Plane=2 per YZ
         print(f"  ...Inizio taglio lungo {len(nodes_for_x)} piani YZ...")
         for node_id_on_plane in nodes_for_x.values():
-            # St7DefinePlaneGlobalN(uID, NodeNum, Plane, PlaneID*)
             ck(st7.St7DefinePlaneGlobalN(uID, node_id_on_plane, 2, ct.byref(plane_id_output)), 
                f"Define YZ plane at node {node_id_on_plane}")
             
             new_plane_id = plane_id_output.value
-            
-            # St7CutElementsByPlane(uID, PlaneID, EdgeTol, BeamPropNum, PlatePropNum)
             ck(st7.St7CutElementsByPlane(uID, new_plane_id, edge_tol, -1, -1), 
                f"Cut at plane {new_plane_id} (Node {node_id_on_plane})")
 
         # 5. Taglia lungo i piani XZ (costante Y)
-        #    Plane=3 per ZX (XZ) (dalla documentazione)
+        #    Plane=3 per ZX (XZ)
         print(f"  ...Inizio taglio lungo {len(nodes_for_y)} piani XZ...")
         for node_id_on_plane in nodes_for_y.values():
-            # St7DefinePlaneGlobalN(uID, NodeNum, Plane, PlaneID*)
             ck(st7.St7DefinePlaneGlobalN(uID, node_id_on_plane, 3, ct.byref(plane_id_output)), 
                f"Define XZ plane at node {node_id_on_plane}")
 
             new_plane_id = plane_id_output.value
-            
+            ck(st7.St7CutElementsByPlane(uID, new_plane_id, edge_tol, -1, -1), 
+               f"Cut at plane {new_plane_id} (Node {node_id_on_plane})")
+        
+        # 6. Taglia lungo i piani XY (costante Z) <-- BLOCCO AGGIUNTO
+        #    Plane=1 per XY
+        print(f"  ...Inizio taglio lungo {len(nodes_for_z)} piani XY...")
+        for node_id_on_plane in nodes_for_z.values():
+            ck(st7.St7DefinePlaneGlobalN(uID, node_id_on_plane, 1, ct.byref(plane_id_output)), 
+               f"Define XY plane at node {node_id_on_plane}")
+
+            new_plane_id = plane_id_output.value
             ck(st7.St7CutElementsByPlane(uID, new_plane_id, edge_tol, -1, -1), 
                f"Cut at plane {new_plane_id} (Node {node_id_on_plane})")
 
         print("  ...Taglio completato.")
 
-        # 6. Cleanup
+        # 7. Cleanup (Rinumerato)
         ck(st7.St7SetKeepSelect(uID, 0), "Set KeepSelect = OFF")
         _deselect_all_plates(uID) # Deseleziona tutto
 

@@ -1,0 +1,70 @@
+*SOLUTION COMMENCED AT 16:10 ON 27/10/2025 
+  
+ Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
+  
+ LICENCED TO                 : PINECA UNIPD 50 POSTI DI LAVORO 
+  
+ ANALYSIS TYPE               : NATURAL FREQUENCY 
+  
+ COMPUTER NAME               : PC-105 
+ USER LOGON NAME             : demnic15950 
+ CPU                         : Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 
+ USABLE PHYSICAL MEMORY      : 15.8 GB 
+ USABLE VIRTUAL MEMORY       : 18.2 GB 
+  
+ MODEL FILE                  : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\local\local_model.st7" 
+ RESULT FILE                 : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\local\local_model.NFA" 
+ SCRATCH PATH                : "C:\Users\demnic15950\Straus7 R31\Tmp\" 
+  
+ TOTALS 
+ Nodes                       : 87 
+ Beams                       : 3 
+ Plates                      : 62 
+ Bricks                      : 0 
+ Links                       : 18 
+  
+ SOLVER UNITS 
+ Length                      : m 
+ Mass                        : kg 
+ Force                       : N 
+ Stress                      : Pa 
+  
+ FREEDOM CASE                : "1:node2_DX" 
+  
+ MASS MATRIX OPTION 
+ Beam Elements               : Lumped 
+ Plate Elements              : Lumped 
+ Global Matrix               : Full (for off-diagonal terms) 
+ Global Mass X               : Included 
+ Global Mass Y               : Included 
+ Global Mass Z               : Included 
+ Global Rotational Mass      : Included 
+ Non-Structural Mass Cases   : "1:Load Case 1" 
+  
+ STORAGE SCHEME              : Sparse  
+ SORTING METHOD              : AMD  
+  
+ NUMBER OF EQUATIONS         : 461 
+ MATRIX FILL-IN              : 44.7% 
+ [K] MATRIX SIZE             : 166.0 KB 
+ [M] MATRIX SIZE             : 91.8 KB 
+ MODE MATRIX SIZE            : 104.6 KB 
+ OPTIMUM RAM NEEDED          : 256.0 KB 
+ FREE SCRATCH SPACE          : 177.5 GB 
+  
+*WARNING[ 79]:Non-zero enforced displacements are ignored by this solver. 
+  
+ Reducing 461 equations using 256.0 KB RAM for [K] of 166.0 KB... 
+  
+ Global stiffness matrix singular at equation 64 - Pivot = -1.985122E-31 (Node 5 RY). 
+  
+*ERROR[  4]:Global stiffness matrix is singular. 
+  
+ 
+*SUMMARY OF MESSAGES
+*Number of Notes    : 0
+*Number of Warnings : 1
+*Number of Errors   : 1
+ 
+*SOLUTION TERMINATED AT 16:10 ON 27/10/2025 
+*SOLUTION TIME: 2 Seconds 

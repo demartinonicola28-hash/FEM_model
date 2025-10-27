@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 13:52 ON 27/10/2025 
+*SOLUTION COMMENCED AT 18:11 ON 27/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -18,8 +18,8 @@
  FREQUENCY FILE              : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\telaio_2D.NFA" 
   
  TOTALS 
- Nodes                       : 14 
- Beams                       : 14 
+ Nodes                       : 30 
+ Beams                       : 32 
  Plates                      : 0 
  Bricks                      : 0 
  Links                       : 0 
@@ -38,16 +38,16 @@
  NUMBER OF BEAM SLICES       : 10 
   
  RAYLEIGH DAMPING INPUT DATA  
- Frequency 1                 : 9.199630E-01 Hz 
+ Frequency 1                 : 3.773033E-01 Hz 
  Damping Ratio 1             : 5.000000E+00 % 
- Frequency 2                 : 2.568834E+00 Hz 
+ Frequency 2                 : 2.426228E+00 Hz 
  Damping Ratio 2             : 5.000000E+00 % 
   
  DAMPING COEFFICIENTS 
- Alpha                       : 4.256088E-01   
- Beta                        : 4.561886E-03   
+ Alpha                       : 2.051619E-01   
+ Beta                        : 5.676946E-03   
   
- NUMBER OF EQUATIONS         : 36 
+ NUMBER OF EQUATIONS         : 84 
  FREE SCRATCH SPACE          : 177.5 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
@@ -60,12 +60,14 @@
  MODAL EXCITATION CASE 1     : "SR_X" 
  Mode     Frequency    Spectral Value  Damping Ratio    Amplitude     Excitation    Participation 
              (Hz)          (m/s^2)                        (N/m)          (N.m)           (%)          (%) 
-   1     9.199630E-01   7.255672E-01   5.000000E-02   2.459883E+04   1.160029E+01   9.063579E+01    90.636 
-   2     2.568834E+00   1.719586E+00   5.000000E-02   2.493206E+03   1.086281E-01   9.186357E+00     9.186 
+   1     3.773033E-01   2.941786E-01   5.000000E-02   5.240993E+04   1.435999E+02   8.617411E+01    86.174 
+   2     1.144015E+00   9.026169E-01   3.467413E-02   6.075692E+03   1.854199E+00   9.989850E+00     9.990 
+   3     1.879967E+00   1.483652E+00   4.221290E-02   1.853664E+03   2.095917E-01   3.047854E+00     3.048 
+   4     2.426228E+00   1.719586E+00   5.000000E-02   4.473209E+02   2.449185E-02   7.354995E-01     0.735 
  -----------------------------------------------------------------------------------------------   -------  
- TOTAL MASS PARTICIPATION (%)                                                       9.982214E+01    99.822  
+ TOTAL MASS PARTICIPATION (%)                                                       9.994731E+01    99.947  
   
- TOTAL CPU TIME              : 0.047 Seconds 
+ TOTAL CPU TIME              : 0.031 Seconds 
   
  
 *SUMMARY OF MESSAGES
@@ -73,5 +75,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 13:52 ON 27/10/2025 
+*SOLUTION COMPLETED AT 18:11 ON 27/10/2025 
 *SOLUTION TIME: 0 Seconds 

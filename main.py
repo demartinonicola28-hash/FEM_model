@@ -40,7 +40,7 @@ from analysis.modal_analysis import run_modal_analysis, get_modal_freqs_periods
 from spettro_ntc18.spettro_ntc18 import run_spettro_ntc18_gui
 from analysis.import_spettro import run as import_spettro_run
 from analysis.spectral_analysis import run as spectral_run
-from analysis.beam_result import max_check_value, list_result_cases
+from analysis.beam_result import max_check_value
 from analysis.import_accelerogram import run
 from analysis.ltd_analysis import run_LTD, ck
 from analysis.node_disp_time import find_node, export_ltd_node_displacements
@@ -53,6 +53,7 @@ from local_model.plate_geometry import create_midplane_nodes_for_members, create
 from local_model.import_tables import run_import_disp_time_tables
 from local_model.cut_elements import run_cut_elements_at_nodes
 from local_model.link_cluster import create_rigid_link_clusters
+from local_model.notch_offset import run_offset_calculation_and_clean_mesh
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -185,7 +186,7 @@ if __name__ == "__main__":
             # leggi e stampa modi
             modes = get_modal_freqs_periods(1, res)
             for k, f, T in modes:
-                print(f"Mode {k:>2}   freq {f:.6g} Hz   period {k:>2} {T:.6g} s")
+                print(f"Mode [{k:>2}]   freq {f:.6g} Hz   period {k:>2} {T:.6g} s")
 
             # Rayleigh F1=min, F2=max, display idem, R1=R2=5%
             freqs = [f for _, f, _ in modes]
@@ -235,8 +236,6 @@ if __name__ == "__main__":
     # === Step 9: analisi spettrale ===========================================
     # Esegue: solver Spectral Response -> import .SRA in combinazione -> solver Linear Static finale.
     print("Avvio analisi spettrale...")
-
-    #list_result_cases(path)  # stampa tutti i case: copia il nome esatto da qui
 
     try:
         sr_res = spectral_run(model_path=path)
@@ -553,7 +552,25 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"ERRORE: Fallita creazione Link Clusters: {e}")
 
-    # === Step 25: apertura automatica del file Straus7 local model ==========================
-    # <--- Rinumerato ---
+    # === Step 25: calcolo offset notch ============================================
+    print("\nAvvio Calcolo Offset e Clean Mesh nel modello locale...")
+    calculated_offset = None # Inizializza a None
+    try:
+        # Salva il valore restituito dalla funzione
+        calculated_offset = run_offset_calculation_and_clean_mesh(
+            model_path=new_model_path,
+            beam_thk=beam_thk,
+            col_thk=col_thk,
+            extra_thk=extra
+        )
+        if calculated_offset is None:
+            print("ATTENZIONE: Calcolo offset fallito, Clean Mesh non eseguito.")
+        else:
+            # Ora puoi usare 'calculated_offset' negli step successivi se necessario
+            print(f"DEBUG main: Offset calcolato = {calculated_offset:.5f} m")
+
+    except Exception as e:
+        print(f"ERRORE: Fallito Calcolo Offset / Clean Mesh: {e}")
+    # === Step 26: apertura automatica del file Straus7 local model ======================
     print("\nApertura automatica del file Straus7...")
     os.startfile(new_model_path)
