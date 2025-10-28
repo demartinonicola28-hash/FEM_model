@@ -1,0 +1,30 @@
+ ________________________________________________________________________________
+
+ Straus7 R3.1.6 AUTOMESH LOG
+ ________________________________________________________________________________
+
+ File: local_model
+ Time: 18:15:10
+ Date: 28/10/2025
+
+ MESHING OPTIONS: Custom Size
+ Maximum edge length: 0,02276 m [1,51733%]
+ Length ratio (min/max): 1,0
+ Maximum increase: 25,0%
+ Min edges per circle: 4,0
+ ...on edges longer than: 0,0m
+ Element type: Quad4
+ Property type: Face property
+ ________________________________________________________________________________
+
+ Meshed successfully.
+
+ The following faces were successfully meshed:
+       1       2       3       4       5       6       7       8       9      10
+      11      12      13      14      15      16      17      18      19      20
+      21      22      23      24      25      26      27      28      29      30
+      31      32      33      34      35      36      37      38      39      40
+      41      42      43      44      45      46      47      48      49      50
+      51      52      53      54      55      56      57      58      59      60
+      61      62
+

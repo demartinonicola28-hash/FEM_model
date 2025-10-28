@@ -52,8 +52,11 @@ from local_model.plate_properties import create_plate_properties, ask_panel_guss
 from local_model.plate_geometry import create_midplane_nodes_for_members, create_plates_for_joint
 from local_model.import_tables import run_import_disp_time_tables
 from local_model.cut_elements import run_cut_elements_at_nodes
-from local_model.link_cluster import create_rigid_link_clusters
-from local_model.notch_offset import run_offset_calculation_and_clean_mesh
+from local_model.notch_offset import run_notch_offset_calculation_and_clean_mesh
+from local_model.mesh_plate import run_plates_to_faces, run_faces_automesh
+from local_model.link_cluster import create_link_clusters_beamYZ_and_colsXZ
+
+
 
 # Assicura che percorsi relativi (es. spettro_ntc18.txt) puntino alla cartella del progetto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -186,7 +189,7 @@ if __name__ == "__main__":
             # leggi e stampa modi
             modes = get_modal_freqs_periods(1, res)
             for k, f, T in modes:
-                print(f"Mode [{k:>2}]   freq {f:.6g} Hz   period {k:>2} {T:.6g} s")
+                print(f"Mode {k:>2})    f  {f:.4f} Hz  |   T  {T:.4f} s")
 
             # Rayleigh F1=min, F2=max, display idem, R1=R2=5%
             freqs = [f for _, f, _ in modes]
@@ -353,8 +356,8 @@ if __name__ == "__main__":
         print(f"Errore esportazione spostamenti: {e}")
 
     # === Step 15: apertura automatica del file Straus7 global model ==========================
-    print("\nApertura automatica del file Straus7...")
-    os.startfile(model)
+    #print("\nApertura automatica del file Straus7...")
+    #os.startfile(model)
 
     # === Step 16: crea modello locale con nodi e beam =====================
     try:
@@ -537,40 +540,75 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"ERRORE: Fallito il taglio degli elementi: {e}") 
 
-    # === Step 24: crea rigid links (Beam/Plate) ==============================
-    print("\nAvvio creazione Rigid Link Clusters nel modello locale...")
-    try:
-        # 'new_model_path' (definito Step 16)
-        # 'out' (dizionario nodi da Step 16)
-        # 'res_nodes' (dizionario plate-nodes da Step 20)
-        
-        create_rigid_link_clusters(
-            model_path=new_model_path,
-            intermediate_nodes=out,
-            plate_nodes_info=res_nodes
-        )
-    except Exception as e:
-        print(f"ERRORE: Fallita creazione Link Clusters: {e}")
 
-    # === Step 25: calcolo offset notch ============================================
+    # === Step 24: calcolo offset notch ============================================
     print("\nAvvio Calcolo Offset e Clean Mesh nel modello locale...")
-    calculated_offset = None # Inizializza a None
+    calculated_notch_offset = None # Inizializza a None
     try:
         # Salva il valore restituito dalla funzione
-        calculated_offset = run_offset_calculation_and_clean_mesh(
+        calculated_notch_offset = run_notch_offset_calculation_and_clean_mesh(
             model_path=new_model_path,
             beam_thk=beam_thk,
             col_thk=col_thk,
             extra_thk=extra
         )
-        if calculated_offset is None:
+        if calculated_notch_offset is None:
             print("ATTENZIONE: Calcolo offset fallito, Clean Mesh non eseguito.")
         else:
-            # Ora puoi usare 'calculated_offset' negli step successivi se necessario
-            print(f"DEBUG main: Offset calcolato = {calculated_offset:.5f} m")
+            # Ora puoi usare 'calculated_notch_offset' negli step successivi se necessario
+            print(f"Notch offset calcolato = {calculated_notch_offset:.5g} m")
 
     except Exception as e:
         print(f"ERRORE: Fallito Calcolo Offset / Clean Mesh: {e}")
-    # === Step 26: apertura automatica del file Straus7 local model ======================
+
+    # === Step 25: Plate -> Face + Surface AutoMesh ===============================
+    print("\nPlate→Face + Surface AutoMesh...")
+    try:
+        # 1) Controllo offset come mesh size
+        if calculated_notch_offset is None:
+            raise RuntimeError("calculated_notch_offset assente")
+        mesh_size = float(calculated_notch_offset)
+        if mesh_size <= 0:
+            raise RuntimeError("mesh_size <= 0")
+
+        # 2) PLATE -> FACE (cancella i plate sorgente)
+        faces_made = run_plates_to_faces(model_path=new_model_path, delete_sources=True)
+        print(f"Conversione completata. Face create: {faces_made}")
+
+        # 3) Surface AutoMesh su tutte le Face
+        run_faces_automesh(model_path=new_model_path, mesh_size_abs=mesh_size)
+        print(f"AutoMesh completato. mesh_size={mesh_size:.6f} m")
+
+    except Exception as e:
+        print(f"ERRORE Step 26: {e}")
+
+    # === Step 26: Rigid Links (YZ trave, XZ colonne) ============================
+    print("\nRigid Link Clusters: YZ trave + XZ colonne...")
+    try:
+        beam_mid_id = int(out["intermediate_ids_by_branch"][0][0])
+        col_low_id  = int(out["intermediate_ids_by_branch"][1][0])
+        col_up_id   = int(out["intermediate_ids_by_branch"][2][0])
+        print(f"Intermedi: BEAM={beam_mid_id}  COL_INF={col_low_id}  COL_SUP={col_up_id}")
+
+        from local_model.link_cluster import create_link_clusters_beamYZ_and_colsXZ
+        info = create_link_clusters_beamYZ_and_colsXZ(
+            model_path=new_model_path,
+            beam_mid_id=beam_mid_id,
+            col_low_id=col_low_id,
+            col_up_id=col_up_id,
+            tol=1e-6
+        )
+        print(f"BEAM YZ: slave={info['beamYZ']['slave']} x={info['beamYZ']['x']:.6f} masters={info['beamYZ']['masters']}")
+        print(f"COL LOW XZ: slave={info['colLowXZ']['slave']} y={info['colLowXZ']['y']:.6f} masters={info['colLowXZ']['masters']}")
+        print(f"COL UP  XZ: slave={info['colUpXZ']['slave']} y={info['colUpXZ']['y']:.6f} masters={info['colUpXZ']['masters']}")
+    except Exception as e:
+        print(f"ERRORE Rigid Links: {e}")
+      
+    # === Step 27: apertura automatica del file Straus7 local model ==============
     print("\nApertura automatica del file Straus7...")
     os.startfile(new_model_path)
+
+
+
+
+

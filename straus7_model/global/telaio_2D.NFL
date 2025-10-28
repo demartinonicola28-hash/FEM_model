@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 18:11 ON 27/10/2025 
+*SOLUTION COMMENCED AT 18:14 ON 28/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -17,8 +17,8 @@
  SCRATCH PATH                : "C:\Users\demnic15950\Downloads\FEM_model\straus7_model\global\_scratch\" 
   
  TOTALS 
- Nodes                       : 30 
- Beams                       : 32 
+ Nodes                       : 14 
+ Beams                       : 14 
  Plates                      : 0 
  Bricks                      : 0 
  Links                       : 0 
@@ -45,132 +45,108 @@
  STORAGE SCHEME              : Sparse  
  SORTING METHOD              : AMD  
   
- NUMBER OF EQUATIONS         : 84 
- MATRIX FILL-IN              : 30.1% 
- [K] MATRIX SIZE             : 4.9 KB 
+ NUMBER OF EQUATIONS         : 36 
+ MATRIX FILL-IN              : 25.8% 
+ [K] MATRIX SIZE             : 1.9 KB 
  [M] MATRIX SIZE             : < 1 KB 
- MODE MATRIX SIZE            : 14.4 KB 
+ MODE MATRIX SIZE            : 3.9 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 177.5 GB 
+ FREE SCRATCH SPACE          : 177.0 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
- Reducing 84 equations using 128.0 KB RAM for [K] of 4.9 KB... 
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
   
- MAXIMUM PIVOT               : 1.724907E+09 (Node 22 DY) 
- MINIMUM PIVOT               : 3.750915E+05 (Node 5 DX) 
+ MAXIMUM PIVOT               : 7.546467E+08 (Node 13 DY) 
+ MINIMUM PIVOT               : 3.614936E+05 (Node 7 DX) 
   
  NODAL DISPLACEMENT COMPONENTS USED IN STARTING VECTOR 
-      11:DX        10:DX        15:DY        14:DY        11:DY         7:DY        10:DY         6:DY   
-       2:DY         3:DY  
+       3:DX         2:DX         6:DY         7:DY         2:DY         3:DY  
   
  SUBSPACE ITERATION 
- Natural frequencies         : 4  
- Mass degrees of freedom     : 56 
- Subspace dimension          : 11 
+ Natural frequencies         : 2  
+ Mass degrees of freedom     : 24 
+ Subspace dimension          : 7 
  Convergence tolerance       : 1.000000E-05 
  Frequency shift             : 0.000000E+00 Hz 
   
  ITERATION 1 
  Current Frequencies (Hz) 
- +3.78420E-01 +1.49495E+00 +3.57889E+00 +3.82944E+00 +3.91503E+00 
- +3.96500E+00 +4.33970E+00 +8.26131E+00 +9.21205E+00 +1.02286E+01 
- +4.55609E+01 
+ +7.87123E-01 +2.10999E+00 +3.78062E+00 +4.43647E+00 +9.33878E+00 
+ +1.14757E+01 +4.55609E+01 
   
  ITERATION 2 
  Current Frequencies (Hz)                                          Relative Difference [0 Converged] 
- +3.77303E-01 +1.14439E+00 +1.88833E+00 +2.56680E+00 +3.57887E+00  [ 2.96E-03  3.06E-01  8.95E-01  4.92E-01  9.39E-02 ] 
- +3.82931E+00 +3.97085E+00 +4.34261E+00 +9.21341E+00 +9.28911E+00  [ 3.54E-02  9.29E-02  9.02E-01  1.47E-04  1.01E-01 ] 
- +1.81096E+01                                                      [ 1.52E+00                                         ] 
+ +7.86995E-01 +2.10793E+00 +3.78071E+00 +4.43648E+00 +9.33815E+00  [ 1.62E-04  9.78E-04  2.29E-05  ........  6.79E-05 ] 
+ +1.14711E+01 +4.18672E+01                                         [ 3.96E-04  8.82E-02                               ] 
   
  ITERATION 3 
- Current Frequencies (Hz)                                          Relative Difference [1 Converged] 
- +3.77303E-01 +1.14401E+00 +1.87997E+00 +2.42630E+00 +3.57899E+00  [ ........  3.27E-04  4.44E-03  5.79E-02  3.42E-05 ] 
- +3.83268E+00 +3.96546E+00 +4.34117E+00 +8.95955E+00 +9.23407E+00  [ 8.80E-04  1.36E-03  3.32E-04  2.83E-02  5.96E-03 ] 
- +1.03862E+01                                                      [ 7.44E-01                                         ] 
+ Current Frequencies (Hz)                                          Relative Difference [2 Converged] 
+ +7.86995E-01 +2.10793E+00 +3.78067E+00 +4.43654E+00 +9.33971E+00  [ ........  ........  1.12E-05  1.24E-05  1.67E-04 ] 
+ +1.14720E+01 +4.17782E+01                                         [ 7.95E-05  2.13E-03                               ] 
   
  ITERATION 4 
- Current Frequencies (Hz)                                          Relative Difference [3 Converged] 
- +3.77303E-01 +1.14401E+00 +1.87997E+00 +2.42623E+00 +3.58083E+00  [ ........  ........  ........  2.95E-05  5.14E-04 ] 
- +3.83058E+00 +3.96491E+00 +4.34399E+00 +8.96551E+00 +9.23031E+00  [ 5.50E-04  1.40E-04  6.49E-04  6.65E-04  4.08E-04 ] 
- +1.01150E+01                                                      [ 2.68E-02                                         ] 
+ Current Frequencies (Hz)                                          Relative Difference [2 Converged] 
+ +7.86995E-01 +2.10793E+00 +3.78065E+00 +4.43646E+00 +9.33762E+00  [ ........  ........  ........  1.82E-05  2.23E-04 ] 
+ +1.14735E+01 +4.18347E+01                                         [ 1.33E-04  1.35E-03                               ] 
   
  ITERATION 5 
- Current Frequencies (Hz)                                          Relative Difference [4 Converged] 
- +3.77303E-01 +1.14401E+00 +1.87997E+00 +2.42623E+00 +3.57889E+00  [ ........  ........  ........  ........  5.42E-04 ] 
- +3.82933E+00 +3.96451E+00 +4.33939E+00 +8.90051E+00 +9.22578E+00  [ 3.26E-04  1.01E-04  1.06E-03  7.30E-03  4.91E-04 ] 
- +9.80275E+00                                                      [ 3.19E-02                                         ] 
-  
-*NOTE[ 35]:More iterations required because only 3 eigenvectors have converged. 
-  
- ITERATION 6 
- Current Frequencies (Hz)                                          Relative Difference [4 Converged] 
- +3.77303E-01 +1.14401E+00 +1.87997E+00 +2.42623E+00 +3.57887E+00  [ ........  ........  ........  ........  ........ ] 
- +3.82931E+00 +3.96451E+00 +4.33926E+00 +8.84913E+00 +9.22229E+00  [ ........  ........  2.98E-05  5.81E-03  3.78E-04 ] 
- +9.62152E+00                                                      [ 1.88E-02                                         ] 
+ Current Frequencies (Hz)                                          Relative Difference [2 Converged] 
+ +7.86995E-01 +2.10793E+00 +3.78061E+00 +4.43643E+00 +9.33745E+00  [ ........  ........  1.13E-05  ........  1.83E-05 ] 
+ +1.14727E+01 +4.16546E+01                                         [ 7.50E-05  4.32E-03                               ] 
   
  FINAL FREQUENCY RESULTS 
  Mode      Eigenvalue     Frequency (rad/s)  Frequency (Hz)      Period (s) 
-    1   +5.62005913E+00   +2.37066639E+00   +3.77303274E-01   +2.65038781E+00 
-    2   +5.16681746E+01   +7.18805778E+00   +1.14401493E+00   +8.74114469E-01 
-    3   +1.39527685E+02   +1.18121838E+01   +1.87996743E+00   +5.31924108E-01 
-    4   +2.32392867E+02   +1.52444372E+01   +2.42622754E+00   +4.12162496E-01 
+    1   +2.44513990E+01   +4.94483559E+00   +7.86995027E-01   +1.27065606E+00 
+    2   +1.75416892E+02   +1.32445042E+01   +2.10792831E+00   +4.74399434E-01 
   
  NODE/DOF EIGENVECTOR NORMALISATION FOR ENGINEERING MODAL MASS AND STIFFNESS 
  Mode  Frequency (Hz)     Node   DoF 
-    1   3.773033E-01        14    DX 
-    2   1.144015E+00        14    DX 
-    3   1.879967E+00         2    DX 
-    4   2.426228E+00         6    DX 
+    1   7.869950E-01         6    DX 
+    2   2.107928E+00         3    DX 
   
  MODE PARTICIPATION FACTORS FOR TRANSLATIONAL EXCITATION 
  Mode    Frequency       P-DX          P-DY          P-DZ          P-RX          P-RY          P-RZ 
             (Hz)       SQRT(N/m)     SQRT(N/m)     SQRT(N/m)     SQRT(N.m)     SQRT(N.m)     SQRT(N.m)  
-    1  3.773033E-01  2.289322E+02  6.689094E-15  0.000000E+00  0.000000E+00  0.000000E+00 -2.197735E+03 
-    2  1.144015E+00 -7.794672E+01 -7.809946E-10  0.000000E+00  0.000000E+00  0.000000E+00 -1.560715E+02 
-    3  1.879967E+00 -4.305419E+01  4.278205E-07  0.000000E+00  0.000000E+00  0.000000E+00  1.301133E+02 
-    4  2.426228E+00 -2.114996E+01  8.194433E-06  0.000000E+00  0.000000E+00  0.000000E+00 -1.769975E+01 
+    1  7.869950E-01  1.580783E+02 -1.076678E-14  0.000000E+00  0.000000E+00  0.000000E+00 -8.334719E+02 
+    2  2.107928E+00  4.527411E+01 -2.004110E-11  0.000000E+00  0.000000E+00  0.000000E+00  4.490689E+01 
   
- TOTAL MASS (MX,MY,MZ) (kg)  : (6.081865E+04,6.081865E+04,0.000000E+00)  
+ TOTAL MASS (MX,MY,MZ) (kg)  : (2.707060E+04,2.707060E+04,0.000000E+00)  
   
  MODE PARTICIPATION MASS RATIOS FOR TRANSLATIONAL EXCITATION 
  Mode    Frequency    Modal Mass    Modal Stiff      P-DX          P-DY          P-DZ         P-DX    P-DY    P-DZ 
             (Hz)         (kg)          (N/m)          (%)           (%)           (%)          (%)     (%)     (%) 
-    1  3.773033E-01  3.155181E+04  1.773231E+05  8.617411E+01  7.356949E-32  0.000000E+00    86.174   0.000   0.000 
-    2  1.144015E+00  3.125204E+04  1.614736E+06  9.989850E+00  1.002904E-21  0.000000E+00     9.990   0.000   0.000 
-    3  1.879967E+00  3.827272E+04  5.340105E+06  3.047854E+00  3.009446E-16  0.000000E+00     3.048   0.000   0.000 
-    4  2.426228E+00  4.413684E+04  1.025709E+07  7.354995E-01  1.104081E-13  0.000000E+00     0.735   0.000   0.000 
+    1  7.869950E-01  1.563031E+04  3.821830E+05  9.230958E+01  4.282266E-31  0.000000E+00    92.310   0.000   0.000 
+    2  2.107928E+00  2.588014E+04  4.539814E+06  7.571850E+00  1.483697E-24  0.000000E+00     7.572   0.000   0.000 
  ----------------------------------------------------------------------------------------   -----------------------  
- TOTAL TRANSLATIONAL MASS PARTICIPATION (%)      9.994731E+01  1.107091E-13  0.000000E+00    99.947   0.000   0.000 
+ TOTAL TRANSLATIONAL MASS PARTICIPATION (%)      9.988143E+01  1.483697E-24  0.000000E+00    99.881   0.000   0.000 
   
  MODE PARTICIPATION MASS RATIOS FOR ROTATIONAL EXCITATION 
  Mode    Frequency    Modal Mass    Modal Stiff      P-RX          P-RY          P-RZ         P-RX    P-RY    P-RZ 
             (Hz)       (kg.m^2)        (N.m)          (%)           (%)           (%)          (%)     (%)     (%) 
-    1  3.773033E-01                              0.000000E+00  0.000000E+00  8.906335E+01     0.000   0.000  89.063  
-    2  1.144015E+00                              0.000000E+00  0.000000E+00  4.491544E-01     0.000   0.000   0.449  
-    3  1.879967E+00                              0.000000E+00  0.000000E+00  3.121706E-01     0.000   0.000   0.312  
-    4  2.426228E+00                              0.000000E+00  0.000000E+00  5.776743E-03     0.000   0.000   0.006  
+    1  7.869950E-01                              0.000000E+00  0.000000E+00  7.358892E+01     0.000   0.000  73.589  
+    2  2.107928E+00                              0.000000E+00  0.000000E+00  2.136272E-01     0.000   0.000   0.214  
  ----------------------------------------------------------------------------------------   -----------------------  
- TOTAL ROTATIONAL MASS PARTICIPATION (%)         0.000000E+00  0.000000E+00  8.983045E+01     0.000   0.000  89.830 
+ TOTAL ROTATIONAL MASS PARTICIPATION (%)         0.000000E+00  0.000000E+00  7.380255E+01     0.000   0.000  73.803 
   
- COUNTING MODES IN RANGE     :   3.77098382E-01 to  2.42643243E+00  
+ COUNTING MODES IN RANGE     :   7.86862934E-01 to  2.10806041E+00  
   
- Reducing 84 equations using 128.0 KB RAM for [K] of 4.9 KB... 
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
   
- Reducing 84 equations using 128.0 KB RAM for [K] of 4.9 KB... 
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
   
  STURM CHECK RESULTS 
- There are no natural frequencies below 3.771E-01 Hz. 
- There are 4 frequencies below 2.426E+00 Hz. 
+ There are no natural frequencies below 7.869E-01 Hz. 
+ There are 2 frequencies below 2.108E+00 Hz. 
  All eigenvalues are found. 
   
  TOTAL CPU TIME              : 0.016 Seconds 
   
  
 *SUMMARY OF MESSAGES
-*Number of Notes    : 1
+*Number of Notes    : 0
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 18:11 ON 27/10/2025 
+*SOLUTION COMPLETED AT 18:14 ON 28/10/2025 
 *SOLUTION TIME: 0 Seconds 

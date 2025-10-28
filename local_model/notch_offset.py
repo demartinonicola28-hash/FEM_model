@@ -1,4 +1,4 @@
-# local_model/notch_offset.py
+# notch_offset.py
 # Calcola l'offset per le verifiche tensionali (notch)
 # ed esegue un clean mesh sul modello con opzioni dettagliate.
 # AGGIUNTI MESSAGGI DI DEBUG E CONTROLLO NUMERO NODI
@@ -50,7 +50,7 @@ def _get_total_entities(uID: int, entity_type: int) -> int:
 
 # --- Funzione Calcolo Offset (Invariata) ---
 
-def calculate_weld_offset(
+def calculate_notch_offset(
     beam_thk: Dict[str, float],
     col_thk: Dict[str, float],
     extra_thk: Dict[str, Optional[float]]
@@ -58,7 +58,7 @@ def calculate_weld_offset(
     """
     Calcola l'offset dalla saldatura basandosi sulla formula fornita.
     """
-    print("  ...Inizio calcolo OFFSET per notch...")
+    print("  ...Inizio calcolo notch offset...")
     all_thicknesses: List[float] = []
     all_thicknesses.extend(v for v in beam_thk.values() if v is not None and v > 0)
     all_thicknesses.extend(v for v in col_thk.values() if v is not None and v > 0)
@@ -82,14 +82,14 @@ def calculate_weld_offset(
     print(f"  t1 (mean) = {t1:.5f} m")
     print(f"  tmin (min) = {tmin:.5f} m")
 
-    offset_val = (0.5 * t1) + (1.5 * t) + (0.7 * tmin)
+    notch_offset_val = (0.5 * t1) + (1.5 * t) + (0.7 * tmin)
 
-    print(f"  Valore OFFSET calcolato: {offset_val:.5f} m")
-    return offset_val
+    print(f"  Valore notch offset calcolato: {notch_offset_val:.5f} m")
+    return notch_offset_val
 
 # --- Funzione Principale (Calcolo Offset + Clean Mesh) ---
 
-def run_offset_calculation_and_clean_mesh(
+def run_notch_offset_calculation_and_clean_mesh(
     model_path: str,
     beam_thk: Dict[str, float],
     col_thk: Dict[str, float],
@@ -101,9 +101,9 @@ def run_offset_calculation_and_clean_mesh(
     """
     print(f"\nAvvio Calcolo Offset e Clean Mesh in: {os.path.basename(model_path)}")
 
-    offset = calculate_weld_offset(beam_thk, col_thk, extra_thk)
+    notch_offset = calculate_notch_offset(beam_thk, col_thk, extra_thk)
 
-    if offset <= 1e-9:
+    if notch_offset <= 1e-9:
         print("Calcolo offset nullo o fallito. Clean Mesh non eseguito.")
         return None
 
@@ -111,10 +111,10 @@ def run_offset_calculation_and_clean_mesh(
     nodes_before = -1
     nodes_after = -1
 
-    print(f"DEBUG: Inizializzazione API per Clean Mesh...") # DEBUG
+    print(f"Inizializzazione API per Clean Mesh...") # DEBUG
     ck(st7.St7Init(), "Init API per Clean Mesh")
     try:
-        print(f"DEBUG: Apertura modello {model_path}...") # DEBUG
+        print(f"Apertura modello {model_path}...") # DEBUG
         ck(st7.St7OpenFile(uID, model_path.encode("utf-8"), b""), f"Open local model {model_path}")
 
         # --- CONTROLLO NODI PRIMA ---
@@ -161,11 +161,9 @@ def run_offset_calculation_and_clean_mesh(
         tolerance = 1.0e-5
         clean_doubles[st7.ipMeshTolerance] = tolerance
 
-        print(f"DEBUG: Chiamata a St7SetCleanMeshOptions...") # DEBUG
         ck(st7.St7SetCleanMeshOptions(uID, clean_ints, clean_doubles), "Set Clean Mesh Options")
 
         print(f"  ...Esecuzione Clean Mesh (Tolleranza={tolerance:.1E})...")
-        print(f"DEBUG: Chiamata a St7CleanMesh...") # DEBUG
         ck(st7.St7CleanMesh(uID), "Esecuzione Clean Mesh")
         print("  ...Clean Mesh (presumibilmente) completato.")
 
@@ -182,19 +180,16 @@ def run_offset_calculation_and_clean_mesh(
 
         # --- Salva Modello ---
         print("  ...Salvataggio modello...")
-        print(f"DEBUG: Chiamata a St7SaveFile...") # DEBUG
         ck(st7.St7SaveFile(uID), "Salvataggio modello locale dopo Clean Mesh")
 
     finally:
         try:
-            print(f"DEBUG: Chiamata a St7CloseFile...") # DEBUG
             ck(st7.St7CloseFile(uID), "Close local model")
         finally:
             # Rilascia sempre l'API
-            print(f"DEBUG: Chiamata a St7Release...") # DEBUG
             st7.St7Release()
 
     print("Processo Calcolo Offset e Clean Mesh completato.")
     # Ritorna l'offset calcolato
-    return offset
+    return notch_offset
 

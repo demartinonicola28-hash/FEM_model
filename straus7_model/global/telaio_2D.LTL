@@ -1,4 +1,4 @@
-*SOLUTION COMMENCED AT 18:11 ON 27/10/2025 
+*SOLUTION COMMENCED AT 18:14 ON 28/10/2025 
   
  Straus7 [R3.1.6][Solver Build R3.1.6] (64-Bit) 
   
@@ -17,8 +17,8 @@
  SCRATCH PATH                : "C:\Users\demnic15950\Downloads\FEM_model\" 
   
  TOTALS 
- Nodes                       : 30 
- Beams                       : 32 
+ Nodes                       : 14 
+ Beams                       : 14 
  Plates                      : 0 
  Bricks                      : 0 
  Links                       : 0 
@@ -40,14 +40,14 @@
  Acceleration                : <None> 
   
  RAYLEIGH DAMPING INPUT DATA  
- Frequency 1                 : 3.773033E-01 Hz 
+ Frequency 1                 : 7.869950E-01 Hz 
  Damping Ratio 1             : 5.000000E+00 % 
- Frequency 2                 : 2.426228E+00 Hz 
+ Frequency 2                 : 2.107928E+00 Hz 
  Damping Ratio 2             : 5.000000E+00 % 
   
  DAMPING COEFFICIENTS 
- Alpha                       : 2.051619E-01   
- Beta                        : 5.676946E-03   
+ Alpha                       : 3.600565E-01   
+ Beta                        : 5.497726E-03   
   
  SOLUTION METHOD             : Direct integration - Newmark Method (Beta = 0.500000; Alpha = 0.250000) 
   
@@ -63,13 +63,13 @@
  SORTING METHOD              : AMD  
  SOLUTION TYPE               : Direct  
   
- NUMBER OF EQUATIONS         : 84 
- MATRIX FILL-IN              : 30.1% 
- [K] MATRIX SIZE             : 4.9 KB 
- [M] MATRIX SIZE             : 3.4 KB 
- [C] MATRIX SIZE             : 3.4 KB 
+ NUMBER OF EQUATIONS         : 36 
+ MATRIX FILL-IN              : 25.8% 
+ [K] MATRIX SIZE             : 1.9 KB 
+ [M] MATRIX SIZE             : 1.4 KB 
+ [C] MATRIX SIZE             : 1.4 KB 
  OPTIMUM RAM NEEDED          : 128.0 KB 
- FREE SCRATCH SPACE          : 177.5 GB 
+ FREE SCRATCH SPACE          : 177.0 GB 
   
 *WARNING[237]:Default freedom conditions might be over-constrained - one or more elements might require additional freedoms. 
   
@@ -81,58 +81,58 @@
   
  SUMMATION OF UNFACTORED APPLIED LOADS  
           Case        FX           FY           FZ           MX           MY           MZ        Case Name 
- Beams       1   +0.00000E+00 -1.19107E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
-             2   +0.00000E+00 -3.50000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +4.54747E-12   "2:G2" 
-             3   +0.00000E+00 -2.35000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +3.63798E-12   "3:Q" 
- Total       1   +0.00000E+00 -1.19107E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
-             2   +0.00000E+00 -3.50000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +4.54747E-12   "2:G2" 
-             3   +0.00000E+00 -2.35000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +3.63798E-12   "3:Q" 
- Vector      1   +0.00000E+00 -1.14272E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
-             2   +0.00000E+00 -3.50000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +4.09273E-12   "2:G2" 
-             3   +0.00000E+00 -2.35000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +3.18323E-12   "3:Q" 
+ Beams       1   +0.00000E+00 -5.95534E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
+             2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-12   "2:G2" 
+             3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.53477E-12   "3:Q" 
+ Total       1   +0.00000E+00 -5.95534E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +0.00000E+00   "1:G1" 
+             2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-12   "2:G2" 
+             3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.53477E-12   "3:Q" 
+ Vector      1   +0.00000E+00 -5.47189E+03 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.42109E-14   "1:G1" 
+             2   +0.00000E+00 -1.75000E+05 +0.00000E+00 +0.00000E+00 +0.00000E+00 +2.27374E-12   "2:G2" 
+             3   +0.00000E+00 -8.50000E+04 +0.00000E+00 +0.00000E+00 +0.00000E+00 +1.42109E-12   "3:Q" 
   
  SUMMATION OF MOMENTS OF APPLIED LOADS ABOUT THE ORIGIN [Vector]  
           Case        MXo          MYo          MZo       Case Name 
-             1   +0.00000E+00 +0.00000E+00 -2.85681E+04   "1:G1" 
-             2   +0.00000E+00 +0.00000E+00 -8.75000E+05   "2:G2" 
-             3   +0.00000E+00 +0.00000E+00 -5.87500E+05   "3:Q" 
+             1   +0.00000E+00 +0.00000E+00 -1.36797E+04   "1:G1" 
+             2   +0.00000E+00 +0.00000E+00 -4.37500E+05   "2:G2" 
+             3   +0.00000E+00 +0.00000E+00 -2.12500E+05   "3:Q" 
   
  START TIME ROW 1            : Num Steps = 250; Time Step = 1.000000E-01; Save Every 1 
   
  Forming effective stiffness... 
   
- Reducing 84 equations using 128.0 KB RAM for [K] of 4.9 KB... 
+ Reducing 36 equations using 128.0 KB RAM for [K] of 1.9 KB... 
   
- MAXIMUM PIVOT               : 1.920757E+09 (Node 22 DY) 
- MINIMUM PIVOT               : 7.009307E+06 (Node 23 RZ) 
+ MAXIMUM PIVOT               : 8.376352E+08 (Node 13 DY) 
+ MINIMUM PIVOT               : 4.889956E+06 (Node 7 DX) 
   
  SUMMARY: Maximum nodal displacement 
  Direction     Magnitude        Node     Time 
-    DX       1.651874E-01         16   1.740000E+01  
-    DY       2.734880E-02         11   2.000000E-01  
+    DX       3.568940E-02          5   1.590000E+01  
+    DY       2.517364E-02          2   2.000000E-01  
   
  SUMMARY: Maximum nodal velocity 
  Direction     Magnitude        Node     Time 
-    DX       3.964791E-01         14   1.790000E+01  
-    DY       2.156546E-01         11   3.000000E-01  
+    DX       1.958059E-01          7   1.620000E+01  
+    DY       2.026655E-01          3   3.000000E-01  
   
  SUMMARY: Maximum nodal acceleration 
  Direction     Magnitude        Node     Time 
-    DX       1.276716E+00         14   8.100000E+00  
-    DY       5.336782E+00         14   2.000000E-01  
+    DX       1.451791E+00         11   1.700000E+00  
+    DY       5.165192E+00          7   2.000000E-01  
   
  SUMMARY: Maximum nodal reaction 
  Direction     Magnitude        Node     Time 
-    DX       2.878593E+04         17   1.720000E+01  
-    DY       4.273461E+05         24   2.000000E-01  
+    DX       1.776670E+04         12   1.590000E+01  
+    DY       1.868945E+05         12   2.000000E-01  
   
  SUMMARY: Maximum beam force 
  Component     Magnitude     Element     Time 
-  Shear 2    8.452037E+04          6   1.000000E-01  
-  Axial      4.205255E+05         23   1.000000E-01  
-  Moment 2   1.001165E+05          1   1.710000E+01  
+  Shear 2    8.386152E+04          3   1.000000E-01  
+  Axial      1.850781E+05         11   1.000000E-01  
+  Moment 2   7.159492E+04          2   1.000000E-01  
   
- TOTAL CPU TIME              : 0.422 Seconds 
+ TOTAL CPU TIME              : 0.391 Seconds 
   
  
 *SUMMARY OF MESSAGES
@@ -140,5 +140,5 @@
 *Number of Warnings : 1
 *Number of Errors   : 0
  
-*SOLUTION COMPLETED AT 18:12 ON 27/10/2025 
+*SOLUTION COMPLETED AT 18:14 ON 28/10/2025 
 *SOLUTION TIME: 2 Seconds 
