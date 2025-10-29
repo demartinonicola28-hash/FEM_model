@@ -4,11 +4,11 @@
  ________________________________________________________________________________
 
  File: local_model
- Time: 18:15:10
- Date: 28/10/2025
+ Time: 12:30:22
+ Date: 29/10/2025
 
  MESHING OPTIONS: Custom Size
- Maximum edge length: 0,02276 m [1,51733%]
+ Maximum edge length: 0,02115 m [1,41%]
  Length ratio (min/max): 1,0
  Maximum increase: 25,0%
  Min edges per circle: 4,0

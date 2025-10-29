@@ -139,15 +139,35 @@ def faces_automesh(uID: int, mesh_size_abs: float):
     return meshed, pmeshed, nmeshed
 
 def run_faces_automesh(model_path: str, mesh_size_abs: float):
-    """Apre -> AutoMesh Face -> salva -> chiude."""
+    """Apre -> AutoMesh Face -> elimina tutte le GEOMETRYFACE -> salva -> chiude."""
     uID = 12
     ck(st7.St7Init(), "Init API")
     try:
         ck(st7.St7OpenFile(uID, os.fspath(model_path).encode("utf-8"), b""), "Open model")
         faces_automesh(uID, mesh_size_abs)
+        _purge_geometry_faces(uID)   # invalida e cancella le Face dopo il mesh
         ck(st7.St7SaveFile(uID), "Save")
     finally:
         try:
             ck(st7.St7CloseFile(uID), "Close")
         finally:
             st7.St7Release()
+
+# --------------------------- Delete GEOMETRYFACE -----------------------------
+def _invalidate_all_geometry_faces(uID: int) -> int:
+    nfaces = _count(uID, st7.tyGEOMETRYFACE)
+    if nfaces == 0:
+        return 0
+    st7.St7InvalidateGeometryFace.argtypes = [ct.c_long, ct.c_long]
+    for f in range(1, nfaces + 1):
+        ck(st7.St7InvalidateGeometryFace(uID, f), f"InvalidateGeometryFace({f})")
+    return nfaces
+
+def _purge_geometry_faces(uID: int) -> int:
+    marked = _invalidate_all_geometry_faces(uID)
+    if marked:
+        st7.St7DeleteInvalidGeometry.argtypes = [ct.c_long]
+        ck(st7.St7DeleteInvalidGeometry(uID), "DeleteInvalidGeometry")
+    left = _count(uID, st7.tyGEOMETRYFACE)
+    print(f"[PurgeFaces] invalidated={marked} remaining={left}")
+    return marked

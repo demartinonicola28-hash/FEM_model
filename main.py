@@ -54,7 +54,8 @@ from local_model.import_tables import run_import_disp_time_tables
 from local_model.cut_elements import run_cut_elements_at_nodes
 from local_model.notch_offset import run_notch_offset_calculation_and_clean_mesh
 from local_model.mesh_plate import run_plates_to_faces, run_faces_automesh
-from local_model.link_cluster import create_link_clusters_beamYZ_and_colsXZ
+from local_model.link_cluster import create_column_clusters_XZ, get_beam_end_local_id_from_neighbors, create_beam_link_cluster_YZ
+
 
 
 
@@ -379,7 +380,7 @@ if __name__ == "__main__":
         )
 
         print("Creati nodi base:", out["base_node_ids"])
-        print("Intermedi per branch:")
+        print("Nodi ntermedi:")
         for i, lst in enumerate(out["intermediate_ids_by_branch"], 1):
             print(f"  Branch {i}: {lst}")
         print(f"Nuovo modello: {new_model_path}")
@@ -582,27 +583,33 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"ERRORE Step 26: {e}")
 
-    # === Step 26: Rigid Links (YZ trave, XZ colonne) ============================
-    print("\nRigid Link Clusters: YZ trave + XZ colonne...")
+    # === Step 26: Rigid Link Clusters (colonne XZ + trave YZ) ====================
+    print("\nRigid Link Clusters colonne nel piano XZ...")
     try:
-        beam_mid_id = int(out["intermediate_ids_by_branch"][0][0])
-        col_low_id  = int(out["intermediate_ids_by_branch"][1][0])
-        col_up_id   = int(out["intermediate_ids_by_branch"][2][0])
-        print(f"Intermedi: BEAM={beam_mid_id}  COL_INF={col_low_id}  COL_SUP={col_up_id}")
+        n_beam = int(out["intermediate_ids_by_branch"][0][0])
+        n_colL = int(out["intermediate_ids_by_branch"][1][0])
+        n_colU = int(out["intermediate_ids_by_branch"][2][0])
 
-        from local_model.link_cluster import create_link_clusters_beamYZ_and_colsXZ
-        info = create_link_clusters_beamYZ_and_colsXZ(
+        # Colonne: XZ @ Ymax e XZ @ Ymin
+        create_column_clusters_XZ(
             model_path=new_model_path,
-            beam_mid_id=beam_mid_id,
-            col_low_id=col_low_id,
-            col_up_id=col_up_id,
+            node_ids=[n_beam, n_colL, n_colU],
             tol=1e-6
         )
-        print(f"BEAM YZ: slave={info['beamYZ']['slave']} x={info['beamYZ']['x']:.6f} masters={info['beamYZ']['masters']}")
-        print(f"COL LOW XZ: slave={info['colLowXZ']['slave']} y={info['colLowXZ']['y']:.6f} masters={info['colLowXZ']['masters']}")
-        print(f"COL UP  XZ: slave={info['colUpXZ']['slave']} y={info['colUpXZ']['y']:.6f} masters={info['colUpXZ']['masters']}")
+        print("Rigid links colonne creati.")
     except Exception as e:
-        print(f"ERRORE Rigid Links: {e}")
+        print(f"ERRORE rigid links colonne: {e}")
+
+
+    print("\nRigid Link cluster trave nel piano YZ da neighbors...")
+    try:
+        beam_end_local_id = get_beam_end_local_id_from_neighbors(out, nodes_info)
+        info = create_beam_link_cluster_YZ(new_model_path, beam_end_local_id, tol=1e-3)
+        print(f"Creato cluster YZ trave: slave={info['slave']}  x_ref={info['x_ref']:.6f}  masters={info['masters']}")
+    except Exception as e:
+        print(f"ERRORE beam YZ cluster: {e}")
+
+
       
     # === Step 27: apertura automatica del file Straus7 local model ==============
     print("\nApertura automatica del file Straus7...")
